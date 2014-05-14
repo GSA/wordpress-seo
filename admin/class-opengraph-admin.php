@@ -35,10 +35,10 @@ if ( ! class_exists( 'WPSEO_Social_Admin' ) ) {
 			self::$meta_fields['social']['opengraph-description']['title']       = __( 'Facebook Description', 'wordpress-seo' );
 			self::$meta_fields['social']['opengraph-description']['description'] = __( 'If you don\'t want to use the meta description for sharing the post on Facebook but want another description there, write it here.', 'wordpress-seo' );
 
-			self::$meta_fields['social']['opengraph-image']['title']       = __( 'Facebook Image', 'wordpress-seo' );
+			self::$meta_fields['social']['opengraph-image']['title'] 	   = __( 'Facebook Image', 'wordpress-seo' );
 			self::$meta_fields['social']['opengraph-image']['description'] = __( 'If you want to override the Facebook image for this post, upload / choose an image or add the URL here.', 'wordpress-seo' );
 
-			self::$meta_fields['social']['google-plus-description']['title']       = __( 'Google+ Description', 'wordpress-seo' );
+			self::$meta_fields['social']['google-plus-description']['title'] 	   = __( 'Google+ Description', 'wordpress-seo' );
 			self::$meta_fields['social']['google-plus-description']['description'] = __( 'If you don\'t want to use the meta description for sharing the post on Google+ but want another description there, write it here.', 'wordpress-seo' );
 		}
 
@@ -65,7 +65,6 @@ if ( ! class_exists( 'WPSEO_Social_Admin' ) ) {
 		 * Filter over the meta boxes to save, this function adds the Social meta boxes.
 		 *
 		 * @param   array $field_defs Array of metaboxes to save.
-		 *
 		 * @return  array
 		 */
 		public function save_meta_boxes( $field_defs ) {
@@ -82,13 +81,11 @@ if ( ! class_exists( 'WPSEO_Social_Admin' ) ) {
 		 * @deprecated use WPSEO_Meta::get_meta_field_defs()
 		 * @see WPSEO_Meta::get_meta_field_defs()
 		 *
-		 * @param    string $post_type
-		 *
-		 * @return    array    Array containing the meta boxes
+		 * @param	string	$post_type
+		 * @return	array	Array containing the meta boxes
 		 */
 		public function get_meta_boxes( $post_type = 'post' ) {
 			_deprecated_function( __CLASS__ . '::' . __METHOD__, 'WPSEO 1.5.0', 'WPSEO_Meta::get_meta_field_defs()' );
-
 			return $this->get_meta_field_defs( 'social' );
 		}
 

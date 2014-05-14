@@ -5,10 +5,10 @@
 
 if ( ! defined( 'WPSEO_VERSION' ) ) {
 	header( 'Status: 403 Forbidden' );
-	header( 'HTTP/1.1 403 Forbidden' );
+
+	header( 'HTTP/1.1 403 Forbidden', true, 403 );
 	exit();
 }
-
 
 if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 	/**
@@ -81,11 +81,20 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 		}
 
 		/**
+		 * Returns the server HTTP protocol to use for output, if it's set.
+		 *
+		 * @return string
+		 */
+		private function http_protocol() {
+			return ( isset( $_SERVER['SERVER_PROTOCOL'] ) && $_SERVER['SERVER_PROTOCOL'] !== '' ) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1';
+		}
+
+		/**
 		 * Register your own sitemap. Call this during 'init'.
 		 *
-		 * @param string $name The name of the sitemap
+		 * @param string   $name     The name of the sitemap
 		 * @param callback $function Function to build your sitemap
-		 * @param string $rewrite Optional. Regular expression to match your sitemap with
+		 * @param string   $rewrite  Optional. Regular expression to match your sitemap with
 		 */
 		function register_sitemap( $name, $function, $rewrite = '' ) {
 			add_action( 'wpseo_do_sitemap_' . $name, $function );
@@ -97,9 +106,9 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 		/**
 		 * Register your own XSL file. Call this during 'init'.
 		 *
-		 * @param string $name The name of the XSL file
+		 * @param string   $name     The name of the XSL file
 		 * @param callback $function Function to build your XSL file
-		 * @param string $rewrite Optional. Regular expression to match your sitemap with
+		 * @param string   $rewrite  Optional. Regular expression to match your sitemap with
 		 */
 		function register_xsl( $name, $function, $rewrite = '' ) {
 			add_action( 'wpseo_xsl_' . $name, $function );
@@ -143,7 +152,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 		 * @since 1.4.16
 		 */
 		function sitemap_close() {
-			remove_all_actions( "wp_footer" );
+			remove_all_actions("wp_footer");
 			die();
 		}
 
@@ -220,11 +229,11 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 			if ( is_array( $post_types ) && $post_types !== array() ) {
 
 				foreach ( $post_types as $post_type ) {
-					if ( isset( $this->options[ 'post_types-' . $post_type . '-not_in_sitemap' ] ) && $this->options[ 'post_types-' . $post_type . '-not_in_sitemap' ] === true ) {
-						unset( $post_types[ $post_type ] );
+					if ( isset( $this->options['post_types-' . $post_type . '-not_in_sitemap'] ) && $this->options['post_types-' . $post_type . '-not_in_sitemap'] === true ) {
+						unset( $post_types[$post_type] );
 					} else {
 						if ( apply_filters( 'wpseo_sitemap_exclude_post_type', false, $post_type ) ) {
-							unset( $post_types[ $post_type ] );
+							unset( $post_types[$post_type] );
 						}
 					}
 				}
@@ -235,15 +244,15 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 
 				$post_type_counts = array();
 				foreach ( $result as $obj ) {
-					$post_type_counts[ $obj->post_type ] = $obj->count;
+					$post_type_counts[$obj->post_type] = $obj->count;
 				}
 				unset( $result );
 
 				foreach ( $post_types as $post_type ) {
 
 					$count = false;
-					if ( isset( $post_type_counts[ $post_type ] ) ) {
-						$count = $post_type_counts[ $post_type ];
+					if ( isset( $post_type_counts[$post_type] ) ) {
+						$count = $post_type_counts[$post_type];
 					} else {
 						continue;
 					}
@@ -258,7 +267,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 							if ( ! isset( $all_dates ) ) {
 								$all_dates = $wpdb->get_col( $wpdb->prepare( "SELECT post_modified_gmt FROM (SELECT @rownum:=@rownum+1 rownum, $wpdb->posts.post_modified_gmt FROM (SELECT @rownum:=0) r, $wpdb->posts WHERE post_status IN ('publish','inherit') AND post_type = %s ORDER BY post_modified_gmt ASC) x WHERE rownum %%%d=0", $post_type, $this->max_entries ) );
 							}
-							$date = date( 'c', strtotime( $all_dates[ $i ] ) );
+							$date = date( 'c', strtotime( $all_dates[$i] ) );
 						}
 
 						$this->sitemap .= '<sitemap>' . "\n";
@@ -276,17 +285,17 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 			if ( is_array( $taxonomies ) && $taxonomies !== array() ) {
 				foreach ( $taxonomies as $tax ) {
 					if ( in_array( $tax, array( 'link_category', 'nav_menu', 'post_format' ) ) ) {
-						unset( $taxonomies[ $tax ] );
+						unset( $taxonomies[$tax] );
 						continue;
 					}
 
 					if ( apply_filters( 'wpseo_sitemap_exclude_taxonomy', false, $tax ) ) {
-						unset( $taxonomies[ $tax ] );
+						unset( $taxonomies[$tax] );
 						continue;
 					}
 
-					if ( isset( $this->options[ 'taxonomies-' . $tax . '-not_in_sitemap' ] ) && $this->options[ 'taxonomies-' . $tax . '-not_in_sitemap' ] === true ) {
-						unset( $taxonomies[ $tax ] );
+					if ( isset( $this->options['taxonomies-' . $tax . '-not_in_sitemap'] ) && $this->options['taxonomies-' . $tax . '-not_in_sitemap'] === true ) {
+						unset( $taxonomies[$tax] );
 						continue;
 					}
 				}
@@ -296,14 +305,14 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 				$all_taxonomy_terms = $wpdb->get_results( $query );
 				$all_taxonomies     = array();
 				foreach ( $all_taxonomy_terms as $obj ) {
-					$all_taxonomies[ $obj->taxonomy ][] = $obj->term_id;
+					$all_taxonomies[$obj->taxonomy][] = $obj->term_id;
 				}
 				unset( $all_taxonomy_terms );
 
 				foreach ( $taxonomies as $tax ) {
 
 					$steps = $this->max_entries;
-					$count = ( isset ( $all_taxonomies[ $tax ] ) ) ? count( $all_taxonomies[ $tax ] ) : 1;
+					$count = ( isset ( $all_taxonomies[$tax] ) ) ? count( $all_taxonomies[$tax] ) : 1;
 					$n     = ( $count > $this->max_entries ) ? (int) ceil( $count / $this->max_entries ) : 1;
 
 					for ( $i = 0; $i < $n; $i ++ ) {
@@ -313,7 +322,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 						if ( ( empty( $count ) || $count == $n ) ) {
 							$date = $this->get_last_modified( $post_type );
 						} else {
-							$terms = array_splice( $all_taxonomies[ $tax ], 0, $steps );
+							$terms = array_splice( $all_taxonomies[$tax], 0, $steps );
 							if ( ! $terms ) {
 								continue;
 							}
@@ -370,7 +379,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 								AND ( ($wpdb->usermeta.meta_key = %s AND CAST($wpdb->usermeta.meta_value AS CHAR) != '0')
 								AND mt1.meta_key = '_yoast_wpseo_profile_updated' ) ORDER BY mt1.meta_value DESC LIMIT 1
 								",
-								$wpdb->get_blog_prefix() . 'user_level'
+									$wpdb->get_blog_prefix() . 'user_level'
 							)
 						);
 						$date = date( 'c', $date );
@@ -386,8 +395,8 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 								AND ( ($wpdb->usermeta.meta_key = %s AND CAST($wpdb->usermeta.meta_value AS CHAR) != '0')
 								AND mt1.meta_key = '_yoast_wpseo_profile_updated' ) ORDER BY mt1.meta_value ASC LIMIT 1 OFFSET %d
 								",
-								$wpdb->get_blog_prefix() . 'user_level',
-								$this->max_entries * ( $i + 1 ) - 1
+									$wpdb->get_blog_prefix() . 'user_level',
+									$this->max_entries * ( $i + 1 ) - 1
 							)
 						);
 						$date = date( 'c', $date );
@@ -409,9 +418,9 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 		/**
 		 * Function to dynamically filter the change frequency
 		 *
-		 * @param string $filter Expands to wpseo_sitemap_$filter_change_freq, allowing for a change of the frequency for numerous specific URLs
+		 * @param string $filter  Expands to wpseo_sitemap_$filter_change_freq, allowing for a change of the frequency for numerous specific URLs
 		 * @param string $default The default value for the frequency
-		 * @param string $url The URL of the currenty entry
+		 * @param string $url     The URL of the currenty entry
 		 *
 		 * @return mixed|void
 		 */
@@ -423,16 +432,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 			 */
 			$change_freq = apply_filters( 'wpseo_sitemap_' . $filter . '_change_freq', $default, $url );
 
-			if ( ! in_array( $change_freq, array(
-				'always',
-				'hourly',
-				'daily',
-				'weekly',
-				'monthly',
-				'yearly',
-				'never'
-			) )
-			) {
+			if ( ! in_array( $change_freq, array( 'always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never' ) ) ) {
 				$change_freq = $default;
 			}
 
@@ -448,9 +448,9 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 			global $wpdb;
 
 			if (
-				( isset( $this->options[ 'post_types-' . $post_type . '-not_in_sitemap' ] ) && $this->options[ 'post_types-' . $post_type . '-not_in_sitemap' ] === true )
-				|| in_array( $post_type, array( 'revision', 'nav_menu_item' ) )
-				|| apply_filters( 'wpseo_sitemap_exclude_post_type', false, $post_type )
+					( isset( $this->options['post_types-' . $post_type . '-not_in_sitemap'] ) && $this->options['post_types-' . $post_type . '-not_in_sitemap'] === true )
+					|| in_array( $post_type, array( 'revision', 'nav_menu_item' ) )
+					|| apply_filters( 'wpseo_sitemap_exclude_post_type', false, $post_type )
 			) {
 				$this->bad_sitemap = true;
 
@@ -481,11 +481,11 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 				$front_id = get_option( 'page_on_front' );
 				if ( ! $front_id && ( $post_type == 'post' || $post_type == 'page' ) ) {
 					$output .= $this->sitemap_url(
-						array(
-							'loc' => $this->home_url,
-							'pri' => 1,
-							'chf' => $this->filter_frequency( 'homepage', 'daily', $this->home_url ),
-						)
+							array(
+									'loc' => $this->home_url,
+									'pri' => 1,
+									'chf' => $this->filter_frequency( 'homepage', 'daily', $this->home_url ),
+							)
 					);
 				} else {
 					if ( $front_id && $post_type == 'post' ) {
@@ -493,11 +493,11 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 						if ( $page_for_posts ) {
 							$page_for_posts_url = get_permalink( $page_for_posts );
 							$output .= $this->sitemap_url(
-								array(
-									'loc' => $page_for_posts_url,
-									'pri' => 1,
-									'chf' => $change_freq = $this->filter_frequency( 'blogpage', 'daily', $page_for_posts_url ),
-								)
+									array(
+											'loc' => $page_for_posts_url,
+											'pri' => 1,
+											'chf' => $change_freq = $this->filter_frequency( 'blogpage', 'daily', $page_for_posts_url ),
+									)
 							);
 						}
 					}
@@ -506,13 +506,12 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 				$archive = get_post_type_archive_link( $post_type );
 				if ( $archive ) {
 					$output .= $this->sitemap_url(
-						array(
-							'loc' => $archive,
-							'pri' => 0.8,
-							'chf' => $this->filter_frequency( $post_type . '_archive', 'weekly', $archive ),
-							'mod' => $this->get_last_modified( $post_type ),
-							// get_lastpostmodified( 'gmt', $post_type ) #17455
-						)
+							array(
+									'loc' => $archive,
+									'pri' => 0.8,
+									'chf' => $this->filter_frequency( $post_type . '_archive', 'weekly', $archive ),
+									'mod' => $this->get_last_modified( $post_type ), // get_lastpostmodified( 'gmt', $post_type ) #17455
+							)
 					);
 				}
 			}
@@ -598,7 +597,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 
 						/**
 						 * Do not include external URLs.
-						 * @see http://wordpress.org/plugins/page-links-to/ can rewrite permalinks to external URLs.
+						 * @see https://wordpress.org/plugins/page-links-to/ can rewrite permalinks to external URLs.
 						 */
 						if ( false === strpos( $url['loc'], $this->home_url ) ) {
 							continue;
@@ -657,7 +656,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 										continue;
 									}
 
-									if ( isset( $url['images'][ $src ] ) ) {
+									if ( isset( $url['images'][$src] ) ) {
 										continue;
 									}
 
@@ -681,12 +680,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 						}
 
 						if ( strpos( $p->post_content, '[gallery' ) !== false ) {
-							$attachments = get_children( array(
-								'post_parent'    => $p->ID,
-								'post_status'    => 'inherit',
-								'post_type'      => 'attachment',
-								'post_mime_type' => 'image'
-							) );
+							$attachments = get_children( array( 'post_parent' => $p->ID, 'post_status' => 'inherit', 'post_type' => 'attachment', 'post_mime_type' => 'image' ) );
 							if ( is_array( $attachments ) && $attachments !== array() ) {
 								foreach ( $attachments as $att_id => $attachment ) {
 									$src   = wp_get_attachment_image_src( $att_id, 'large', false );
@@ -754,9 +748,9 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 		 */
 		function build_tax_map( $taxonomy ) {
 			if (
-				( isset( $this->options[ 'taxonomies-' . $taxonomy->name . '-not_in_sitemap' ] ) && $this->options[ 'taxonomies-' . $taxonomy->name . '-not_in_sitemap' ] === true )
-				|| in_array( $taxonomy, array( 'link_category', 'nav_menu', 'post_format' ) )
-				|| apply_filters( 'wpseo_sitemap_exclude_taxonomy', false, $taxonomy->name )
+					( isset( $this->options['taxonomies-' . $taxonomy->name . '-not_in_sitemap'] ) && $this->options['taxonomies-' . $taxonomy->name . '-not_in_sitemap'] === true )
+					|| in_array( $taxonomy, array( 'link_category', 'nav_menu', 'post_format' ) )
+					|| apply_filters( 'wpseo_sitemap_exclude_taxonomy', false, $taxonomy->name )
 			) {
 				$this->bad_sitemap = true;
 
@@ -789,7 +783,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 					$tax_sitemap_inc = WPSEO_Taxonomy_Meta::get_term_meta( $c, $c->taxonomy, 'sitemap_include' );
 
 					if ( ( is_string( $tax_noindex ) && $tax_noindex === 'noindex' )
-					     && ( ! is_string( $tax_sitemap_inc ) || $tax_sitemap_inc !== 'always' )
+							&& ( ! is_string( $tax_sitemap_inc ) || $tax_sitemap_inc !== 'always' )
 					) {
 						continue;
 					}
@@ -917,10 +911,10 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 					$author_link = get_author_posts_url( $user->ID );
 					if ( $author_link !== '' ) {
 						$url = array(
-							'loc' => $author_link,
-							'pri' => 0.8,
-							'chf' => $change_freq = $this->filter_frequency( 'author_archive', 'daily', $author_link ),
-							'mod' => date( 'c', isset( $user->_yoast_wpseo_profile_updated ) ? $user->_yoast_wpseo_profile_updated : time() ),
+								'loc' => $author_link,
+								'pri' => 0.8,
+								'chf' => $change_freq = $this->filter_frequency( 'author_archive', 'daily', $author_link ),
+								'mod' => date( 'c', isset( $user->_yoast_wpseo_profile_updated ) ? $user->_yoast_wpseo_profile_updated : time() ),
 						);
 						// Use this filter to adjust the entry before it gets added to the sitemap
 						$url = apply_filters( 'wpseo_sitemap_entry', $url, 'user', $user );
@@ -961,7 +955,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 		 */
 		function xsl_output( $type ) {
 			if ( $type == 'main' ) {
-				header( 'HTTP/1.1 200 OK', true, 200 );
+				header( $this->http_protocol() .' 200 OK', true, 200 );
 				// Prevent the search engines from indexing the XML Sitemap.
 				header( 'X-Robots-Tag: noindex, follow', true );
 				header( 'Content-Type: text/xml' );
@@ -982,7 +976,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 		 * Spit out the generated sitemap and relevant headers and encoding information.
 		 */
 		function output() {
-			header( 'HTTP/1.1 200 OK', true, 200 );
+			header( $this->http_protocol() .' 200 OK', true, 200 );
 			// Prevent the search engines from indexing the XML Sitemap.
 			header( 'X-Robots-Tag: noindex, follow', true );
 			header( 'Content-Type: text/xml' );
@@ -1008,7 +1002,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 		 */
 		function sitemap_url( $url ) {
 			if ( isset( $url['mod'] ) ) {
-				$date = mysql2date( 'Y-m-d\TH:i:s+00:00', $url['mod'] );
+				$date = mysql2date( 'Y-m-d\TH:i:s+00:00', $url['mod'], false );
 			} else {
 				$date = date( 'c' );
 			}
@@ -1090,18 +1084,18 @@ if ( ! class_exists( 'WPSEO_Sitemaps' ) ) {
 				$query                 = "SELECT post_type, MAX(post_modified_gmt) AS date FROM $wpdb->posts WHERE post_status IN ('publish','inherit') AND post_type IN ('" . implode( "','", get_post_types( array( 'public' => true ) ) ) . "') GROUP BY post_type ORDER BY post_modified_gmt DESC";
 				$results               = $wpdb->get_results( $query );
 				foreach ( $results as $obj ) {
-					$this->post_type_dates[ $obj->post_type ] = $obj->date;
+					$this->post_type_dates[$obj->post_type] = $obj->date;
 				}
 				unset( $results );
 			}
 
 			if ( count( $post_types ) === 1 ) {
-				$result = strtotime( $this->post_type_dates[ $post_types[0] ] );
+				$result = strtotime( $this->post_type_dates[$post_types[0]] );
 			} else {
 				$result = 0;
 				foreach ( $post_types as $post_type ) {
-					if ( strotime( $this->post_type_dates[ $post_type ] ) > $result ) {
-						$result = strtotime( $this->post_type_dates[ $post_type ] );
+					if ( isset( $this->post_type_dates[$post_type] ) && strtotime( $this->post_type_dates[$post_type] ) > $result ) {
+						$result = strtotime( $this->post_type_dates[$post_type] );
 					}
 				}
 			}

@@ -28,14 +28,16 @@ if ( ! class_exists( 'Sitemap_Walker' ) ) {
 			$tax_name = $args['taxonomy'];
 
 			// use cat_id for category and slug for all other taxonomy
-			$term_id = ( $tax_name == 'category' ) ? $object->cat_ID : $object->slug;
+			$term_id = ($tax_name == 'category') ? $object->cat_ID : $object->slug;
 
 			$query_args = array(
 				'post_type'      => $args['post_type'],
 				'post_status'    => 'publish',
-				'posts_per_page' => - 1,
-				"{$tax_name}"    => $term_id,
-				'meta_query'     => array(
+				'posts_per_page' => -1,
+
+				"{$tax_name}" => $term_id,
+
+				'meta_query' => array(
 					'relation' => 'OR',
 					// include if this key doesn't exists
 					array(

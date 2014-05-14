@@ -15,7 +15,7 @@ if ( ! class_exists( 'WPSEO_GooglePlus' ) ) {
 	class WPSEO_GooglePlus extends WPSEO_Frontend {
 
 		/**
-		 * @var    object    Instance of this class
+		 * @var	object	Instance of this class
 		 */
 		public static $instance;
 
@@ -37,7 +37,6 @@ if ( ! class_exists( 'WPSEO_GooglePlus' ) ) {
 			if ( ! ( self::$instance instanceof self ) ) {
 				self::$instance = new self();
 			}
-
 			return self::$instance;
 		}
 

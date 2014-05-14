@@ -33,13 +33,9 @@ if ( ! class_exists( 'WPSEO_Taxonomy' ) ) {
 			$options = WPSEO_Options::get_all();
 
 			if ( is_admin() && ( isset( $_GET['taxonomy'] ) && $_GET['taxonomy'] !== '' ) &&
-			     ( ! isset( $options[ 'hideeditbox-tax-' . $_GET['taxonomy'] ] ) || $options[ 'hideeditbox-tax-' . $_GET['taxonomy'] ] === false )
-			) {
-				add_action( sanitize_text_field( $_GET['taxonomy'] ) . '_edit_form', array(
-					$this,
-					'term_seo_form'
-				), 10, 1 );
-			}
+				( ! isset( $options['hideeditbox-tax-' . $_GET['taxonomy']] ) || $options['hideeditbox-tax-' . $_GET['taxonomy']] === false )
+			)
+				add_action( sanitize_text_field( $_GET['taxonomy'] ) . '_edit_form', array( $this, 'term_seo_form' ), 10, 1 );
 
 			add_action( 'edit_term', array( $this, 'update_term' ), 99, 3 );
 
@@ -69,6 +65,9 @@ if ( ! class_exists( 'WPSEO_Taxonomy' ) ) {
 			$this->sitemap_include_options['always'] = __( 'Always include', 'wordpress-seo' );
 			$this->sitemap_include_options['never']  = __( 'Never include', 'wordpress-seo' );
 		}
+
+
+
 
 
 		/**
@@ -101,17 +100,17 @@ if ( ! class_exists( 'WPSEO_Taxonomy' ) ) {
 		/**
 		 * Create a row in the form table.
 		 *
-		 * @param string $var Variable the row controls.
-		 * @param string $label Label for the variable.
-		 * @param string $desc Description of the use of the variable.
-		 * @param array $tax_meta Taxonomy meta value.
-		 * @param string $type Type of form row to create.
-		 * @param array $options Options to use when form row is a select box.
+		 * @param string $var      Variable the row controls.
+		 * @param string $label    Label for the variable.
+		 * @param string $desc     Description of the use of the variable.
+		 * @param array  $tax_meta Taxonomy meta value.
+		 * @param string $type     Type of form row to create.
+		 * @param array  $options  Options to use when form row is a select box.
 		 */
 		function form_row( $var, $label, $desc, $tax_meta, $type = 'text', $options = array() ) {
 			$val = '';
-			if ( isset( $tax_meta[ $var ] ) && $tax_meta[ $var ] !== '' ) {
-				$val = $tax_meta[ $var ];
+			if ( isset( $tax_meta[$var] ) && $tax_meta[$var] !== '' ) {
+				$val = $tax_meta[$var];
 			}
 
 			$esc_var = esc_attr( $var );
@@ -124,17 +123,19 @@ if ( ! class_exists( 'WPSEO_Taxonomy' ) ) {
 					$field .= '
 		        <p class="description">' . esc_html( $desc ) . '</p>';
 				}
-			} elseif ( $type == 'checkbox' ) {
+			}
+			elseif ( $type == 'checkbox' ) {
 				$field .= '
 				<input name="' . $esc_var . '" id="' . $esc_var . '" type="checkbox" ' . checked( $val ) . '/>';
-			} elseif ( $type == 'select' ) {
+			}
+			elseif ( $type == 'select' ) {
 				if ( is_array( $options ) && $options !== array() ) {
 					$field .= '
 				<select name="' . $esc_var . '" id="' . $esc_var . '">';
 
 					foreach ( $options as $option => $option_label ) {
 						$selected = selected( $option, $val, false );
-						$field .= '
+						$field   .= '
 					<option ' . $selected . ' value="' . esc_attr( $option ) . '">' . esc_html( $option_label ) . '</option>';
 					}
 
@@ -156,9 +157,8 @@ if ( ! class_exists( 'WPSEO_Taxonomy' ) ) {
 		 * @param object $term Term to show the edit boxes for.
 		 */
 		function term_seo_form( $term ) {
-			if ( $this->tax_is_public() === false ) {
+			if ( $this->tax_is_public() === false )
 				return;
-			}
 
 			$tax_meta = WPSEO_Taxonomy_Meta::get_term_meta( (int) $term->term_id, $term->taxonomy );
 			$options  = WPSEO_Options::get_all();
@@ -183,7 +183,7 @@ if ( ! class_exists( 'WPSEO_Taxonomy' ) ) {
 			/* Don't show the robots index field if it's overruled by a blog-wide option */
 			if ( '0' != get_option( 'blog_public' ) ) {
 				$current = 'index';
-				if ( isset( $options[ 'noindex-tax-' . $term->taxonomy ] ) && $options[ 'noindex-tax-' . $term->taxonomy ] === true ) {
+				if ( isset( $options['noindex-tax-' . $term->taxonomy] ) && $options['noindex-tax-' . $term->taxonomy] === true ) {
 					$current = 'noindex';
 				}
 				$noindex_options            = $this->no_index_options;
@@ -200,8 +200,8 @@ if ( ! class_exists( 'WPSEO_Taxonomy' ) ) {
 		/**
 		 * Update the taxonomy meta data on save.
 		 *
-		 * @param int $term_id ID of the term to save data for
-		 * @param int $tt_id The taxonomy_term_id for the term.
+		 * @param int    $term_id  ID of the term to save data for
+		 * @param int    $tt_id    The taxonomy_term_id for the term.
 		 * @param string $taxonomy The taxonomy the term belongs to.
 		 */
 		function update_term( $term_id, $tt_id, $taxonomy ) {
@@ -210,8 +210,8 @@ if ( ! class_exists( 'WPSEO_Taxonomy' ) ) {
 			/* Create post array with only our values */
 			$new_meta_data = array();
 			foreach ( WPSEO_Taxonomy_Meta::$defaults_per_term as $key => $default ) {
-				if ( isset( $_POST[ $key ] ) ) {
-					$new_meta_data[ $key ] = $_POST[ $key ];
+				if ( isset( $_POST[$key] ) ) {
+					$new_meta_data[$key] = $_POST[$key];
 				}
 			}
 
@@ -221,11 +221,12 @@ if ( ! class_exists( 'WPSEO_Taxonomy' ) ) {
 
 			/* Add/remove the result to/from the original option value */
 			if ( $clean !== array() ) {
-				$tax_meta[ $taxonomy ][ $term_id ] = $clean;
-			} else {
-				unset( $tax_meta[ $taxonomy ][ $term_id ] );
-				if ( isset( $tax_meta[ $taxonomy ] ) && $tax_meta[ $taxonomy ] === array() ) {
-					unset( $tax_meta[ $taxonomy ] );
+				$tax_meta[$taxonomy][$term_id] = $clean;
+			}
+			else {
+				unset( $tax_meta[$taxonomy][$term_id] );
+				if ( isset( $tax_meta[$taxonomy] ) && $tax_meta[$taxonomy] === array() ) {
+					unset( $tax_meta[$taxonomy] );
 				}
 			}
 
@@ -257,7 +258,6 @@ if ( ! class_exists( 'WPSEO_Taxonomy' ) ) {
 		 * Adds shortcode support to category descriptions.
 		 *
 		 * @param string $desc String to add shortcodes in.
-		 *
 		 * @return string
 		 */
 		function custom_category_descriptions_add_shortcode_support( $desc ) {

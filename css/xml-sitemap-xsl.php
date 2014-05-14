@@ -5,7 +5,7 @@
 
 // This is to prevent issues with New Relics stupid auto injection of code. It's ugly but I don't want
 // to deal with support requests for other people's wrong code...
-if ( extension_loaded( 'newrelic' ) && function_exists( 'newrelic_disable_autorum' ) ) {
+if ( extension_loaded( 'newrelic' ) && function_exists('newrelic_disable_autorum') ) {
 	newrelic_disable_autorum();
 }
 
@@ -82,8 +82,7 @@ $xsl = '<?xml version="1.0" encoding="UTF-8"?>
 			<body>
 				<div id="content">
 					<h1>XML Sitemap</h1>
-					<p class="expl">
-					</p>
+
 					<xsl:if test="count(sitemap:sitemapindex/sitemap:sitemap) &gt; 0">
 						<p class="expl">
 							This XML Sitemap Index file contains <xsl:value-of select="count(sitemap:sitemapindex/sitemap:sitemap)"/> sitemaps.

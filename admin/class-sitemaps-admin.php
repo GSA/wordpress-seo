@@ -30,7 +30,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps_Admin' ) ) {
 		 */
 		function delete_sitemaps() {
 			$options = WPSEO_Options::get_all();
-			if ( $options['enablexmlsitemap'] === true ) {
+			if ( $options[ 'enablexmlsitemap' ] === true ) {
 
 				$file_to_check_for = array(
 					//ABSPATH . 'sitemap.xml',
@@ -42,7 +42,7 @@ if ( ! class_exists( 'WPSEO_Sitemaps_Admin' ) ) {
 				$new_files_found = false;
 
 				foreach ( $file_to_check_for as $file ) {
-					if ( ( $options['blocking_files'] === array() || ( $options['blocking_files'] !== array() && in_array( $file, $options['blocking_files'] ) === false ) ) && file_exists( $file ) ) {
+					if ( ( $options['blocking_files'] === array() || ( $options['blocking_files'] !== array() && in_array( $file, $options[ 'blocking_files'] ) === false ) ) && file_exists( $file ) ) {
 						$options['blocking_files'][] = $file;
 						$new_files_found             = true;
 					}
@@ -59,9 +59,8 @@ if ( ! class_exists( 'WPSEO_Sitemaps_Admin' ) ) {
 		 * and is a post that is included in sitemaps.
 		 */
 		function status_transition( $new_status, $old_status, $post ) {
-			if ( $new_status != 'publish' ) {
+			if ( $new_status != 'publish' )
 				return;
-			}
 
 			wp_cache_delete( 'lastpostmodified:gmt:' . $post->post_type, 'timeinfo' ); // #17455
 
@@ -78,7 +77,8 @@ if ( ! class_exists( 'WPSEO_Sitemaps_Admin' ) ) {
 			if ( WPSEO_Meta::get_value( 'sitemap-include', $post->ID ) !== 'never' ) {
 				if ( defined( 'YOAST_SEO_PING_IMMEDIATELY' ) && YOAST_SEO_PING_IMMEDIATELY ) {
 					wpseo_ping_search_engines();
-				} else {
+				}
+				else {
 					wp_schedule_single_event( ( time() + 300 ), 'wpseo_ping_search_engines' );
 				}
 			}

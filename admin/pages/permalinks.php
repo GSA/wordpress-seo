@@ -18,8 +18,8 @@ $options = get_option( 'wpseo_permalinks' );
 $content = '';
 if ( $options['stripcategorybase'] ) {
 	$content = '<div class="error-message">';
-	$content .= '<p>' . sprintf( __( 'The feature for stripping the category base will be removed in version 1.6 of WordPress SEO. We suggest using %1$sFV Top Level Categories%2$s if you insist on keeping this but do know that the feature is very error prone and not <em>that</em> important for your SEO.', 'wordpress-seo' ), '<a href="http://wordpress.org/plugins/fv-top-level-cats/">', '</a>' ) . '</p>';
-	$content .= '<p>' . __( 'As soon as you disable the feature below, the option will no longer be available.', 'wordpress-seo' ) . '</p>';
+	$content .= '<p>' . sprintf( __('The feature for stripping the category base will be removed in version 1.6 of WordPress SEO. We suggest using %1$sFV Top Level Categories%2$s if you insist on keeping this but do know that the feature is very error prone and not <em>that</em> important for your SEO.','wordpress-seo'), '<a href="https://wordpress.org/plugins/fv-top-level-cats/">', '</a>' ) .'</p>';
+	$content .= '<p>' . __('As soon as you disable the feature below, the option will no longer be available.','wordpress-seo') . '</p>';
 	$content .= $wpseo_admin_pages->checkbox( 'stripcategorybase', __( 'Strip the category base (usually <code>/category/</code>) from the category URL.', 'wordpress-seo' ) );
 	$content .= '</div>';
 	$content .= '<br/><br/>';
@@ -43,17 +43,13 @@ $content .= '<p class="desc">' . __( 'People make mistakes in their links toward
 $wpseo_admin_pages->postbox( 'permalinks', __( 'Permalink Settings', 'wordpress-seo' ), $content );
 
 /* @internal Important: Make sure the options added to the array here are in line with the options set in the WPSEO_Option_Permalinks::$force_transport_options property */
-$content = $wpseo_admin_pages->select( 'force_transport', __( 'Force Transport', 'wordpress-seo' ), array(
-	'default' => __( 'Leave default', 'wordpress-seo' ),
-	'http'    => __( 'Force http', 'wordpress-seo' ),
-	'https'   => __( 'Force https', 'wordpress-seo' )
-) );
+$content  = $wpseo_admin_pages->select( 'force_transport', __( 'Force Transport', 'wordpress-seo' ), array( 'default' => __( 'Leave default', 'wordpress-seo' ), 'http' => __( 'Force http', 'wordpress-seo' ), 'https' => __( 'Force https', 'wordpress-seo' ) ) );
 $content .= '<p class="desc label">' . __( 'Force the canonical to either http or https, when your blog runs under both.', 'wordpress-seo' ) . '</p>';
 
 $wpseo_admin_pages->postbox( 'canonical', __( 'Canonical Settings', 'wordpress-seo' ), $content );
 
 
-$content = $wpseo_admin_pages->checkbox( 'cleanpermalink-googlesitesearch', __( 'Prevent cleaning out Google Site Search URL\'s.', 'wordpress-seo' ) );
+$content  = $wpseo_admin_pages->checkbox( 'cleanpermalink-googlesitesearch', __( 'Prevent cleaning out Google Site Search URL\'s.', 'wordpress-seo' ) );
 $content .= '<p class="desc">' . __( 'Google Site Search URL\'s look weird, and ugly, but if you\'re using Google Site Search, you probably do not want them cleaned out.', 'wordpress-seo' ) . '</p>';
 
 $content .= $wpseo_admin_pages->checkbox( 'cleanpermalink-googlecampaign', __( 'Prevent cleaning out Google Analytics Campaign & Google AdWords Parameters.', 'wordpress-seo' ) );

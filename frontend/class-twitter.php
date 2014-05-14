@@ -19,25 +19,25 @@ if ( ! class_exists( 'WPSEO_Twitter' ) ) {
 	class WPSEO_Twitter extends WPSEO_Frontend {
 
 		/**
-		 * @var    object    Instance of this class
+		 * @var	object	Instance of this class
 		 */
 		public static $instance;
 
 		/**
 		 * @var array Images
 		 */
-		var $shown_images;
+		public $shown_images;
 
 		/**
 		 * @var array $options Holds the options for the Twitter Card functionality
 		 */
-		var $options;
+		public $options;
 
 		/**
 		 * Class constructor
 		 */
 		public function __construct() {
-			$this->options      = WPSEO_Options::get_all();
+			$this->options = WPSEO_Options::get_all();
 			$this->shown_images = array(); // Instantiate as empty array
 			$this->twitter();
 		}
@@ -51,7 +51,6 @@ if ( ! class_exists( 'WPSEO_Twitter' ) ) {
 			if ( ! ( self::$instance instanceof self ) ) {
 				self::$instance = new self();
 			}
-
 			return self::$instance;
 		}
 
@@ -127,20 +126,11 @@ if ( ! class_exists( 'WPSEO_Twitter' ) ) {
 			 * @api string $unsigned The type string
 			 */
 			$type = apply_filters( 'wpseo_twitter_card_type', $this->options['twitter_card_type'] );
-			if ( ! in_array( $type, array(
-				'summary',
-				'summary_large_image',
-				'photo',
-				'gallery',
-				'app',
-				'player',
-				'product'
-			) )
-			) {
+			if ( ! in_array( $type, array( 'summary', 'summary_large_image', 'photo', 'gallery', 'app', 'player', 'product' ) ) ) {
 				$type = 'summary';
 			}
 
-			$this->output_metatag( 'card', $type );
+			$this->output_metatag( 'card',  $type );
 		}
 
 		/**
@@ -187,7 +177,8 @@ if ( ! class_exists( 'WPSEO_Twitter' ) ) {
 
 			if ( is_string( $twitter ) && $twitter !== '' ) {
 				$this->output_metatag( 'creator', '@' . $twitter );
-			} elseif ( $this->options['twitter_site'] !== '' ) {
+			}
+			elseif ( $this->options['twitter_site'] !== '' ) {
 				if ( is_string( $this->options['twitter_site'] ) && $this->options['twitter_site'] !== '' ) {
 					$this->output_metatag( 'creator', '@' . $this->options['twitter_site'] );
 				}
@@ -258,6 +249,7 @@ if ( ! class_exists( 'WPSEO_Twitter' ) ) {
 		 * Outputs a Twitter image tag for a given image
 		 *
 		 * @param string $img
+		 * @return bool
 		 */
 		public function image_output( $img ) {
 
@@ -271,14 +263,17 @@ if ( ! class_exists( 'WPSEO_Twitter' ) ) {
 			$escaped_img = esc_url( $img );
 
 			if ( in_array( $escaped_img, $this->shown_images ) ) {
-				return;
+				return false;
 			}
 
-			if ( is_string( $escaped_img ) && $escaped_img !== '' ) {
+			if ( is_string( $escaped_img ) && $escaped_img !== ''  ) {
 				$this->output_metatag( 'image:src', $escaped_img, true );
 
 				array_push( $this->shown_images, $escaped_img );
+				return true;
 			}
+
+			return false;
 		}
 
 		/**
@@ -299,9 +294,9 @@ if ( ! class_exists( 'WPSEO_Twitter' ) ) {
 				$twitter_img = WPSEO_Meta::get_value( 'twitter-image' );
 				if ( $twitter_img !== '' ) {
 					$this->image_output( $twitter_img );
-
 					return;
-				} elseif ( function_exists( 'has_post_thumbnail' ) && has_post_thumbnail( $post->ID ) ) {
+				}
+				elseif ( function_exists( 'has_post_thumbnail' ) && has_post_thumbnail( $post->ID ) ) {
 					/**
 					 * Filter: 'wpseo_twitter_image_size' - Allow changing the Twitter Card image size
 					 *

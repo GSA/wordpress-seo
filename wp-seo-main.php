@@ -14,7 +14,7 @@ if ( ! function_exists( 'add_filter' ) ) {
  * @internal Nobody should be able to overrule the real version number as this can cause serious issues
  * with the options, so no if ( ! defined() )
  */
-define( 'WPSEO_VERSION', '1.5.2.5' );
+define( 'WPSEO_VERSION', '1.5.3' );
 
 if ( ! defined( 'WPSEO_PATH' ) ) {
 	define( 'WPSEO_PATH', plugin_dir_path( WPSEO_FILE ) );
@@ -32,8 +32,7 @@ if ( ! defined( 'WPSEO_CSSJS_SUFFIX' ) ) {
 /**
  * Auto load our class files
  *
- * @param   string $class Class name
- *
+ * @param   string  $class  Class name
  * @return    void
  */
 function wpseo_auto_load( $class ) {
@@ -69,12 +68,17 @@ function wpseo_auto_load( $class ) {
 			'wpseo_option_rss'                   => WPSEO_PATH . 'inc/class-wpseo-options.php',
 			'wpseo_option_internallinks'         => WPSEO_PATH . 'inc/class-wpseo-options.php',
 			'wpseo_option_xml'                   => WPSEO_PATH . 'inc/class-wpseo-options.php',
-			'wpseo_option_ms'                    => WPSEO_PATH . 'inc/class-wpseo-options.php',
-			'wpseo_taxonomy_meta'                => WPSEO_PATH . 'inc/class-wpseo-options.php',
+			'wpseo_option_ms'	                 => WPSEO_PATH . 'inc/class-wpseo-options.php',
+			'wpseo_taxonomy_meta'		         => WPSEO_PATH . 'inc/class-wpseo-options.php',
 			'wpseo_meta'                         => WPSEO_PATH . 'inc/class-wpseo-meta.php',
+
 			'yoast_license_manager'              => WPSEO_PATH . 'admin/license-manager/class-license-manager.php',
-			'yoast_plugin_license_manager'       => WPSEO_PATH . 'admin/license-manager/class-plugin-license-manager.php',
-			'yoast_product'                      => WPSEO_PATH . 'admin/license-manager/class-product.php',
+			'yoast_plugin_license_manager'       =>	WPSEO_PATH . 'admin/license-manager/class-plugin-license-manager.php',
+			'yoast_product'                      =>	WPSEO_PATH . 'admin/license-manager/class-product.php',
+
+			'yoast_notification_center'          =>	WPSEO_PATH . 'admin/class-yoast-notification-center.php',
+			'yoast_notification'                 =>	WPSEO_PATH . 'admin/class-yoast-notification.php',
+
 			'wp_list_table'                      => ABSPATH . 'wp-admin/includes/class-wp-list-table.php',
 			'walker_category'                    => ABSPATH . 'wp-includes/category-template.php',
 			'pclzip'                             => ABSPATH . 'wp-admin/includes/class-pclzip.php',
@@ -83,11 +87,10 @@ function wpseo_auto_load( $class ) {
 
 	$cn = strtolower( $class );
 
-	if ( isset( $classes[ $cn ] ) ) {
-		require_once( $classes[ $cn ] );
+	if ( isset( $classes[$cn] ) ) {
+		require_once( $classes[$cn] );
 	}
 }
-
 spl_autoload_register( 'wpseo_auto_load' );
 
 
@@ -138,8 +141,8 @@ function wpseo_deactivate() {
 function wpseo_load_textdomain() {
 	load_plugin_textdomain( 'wordpress-seo', false, dirname( plugin_basename( WPSEO_FILE ) ) . '/languages/' );
 }
+add_action( 'init', 'wpseo_load_textdomain', 1 );
 
-add_filter( 'init', 'wpseo_load_textdomain', 1 );
 
 
 /**
@@ -233,7 +236,8 @@ function wpseo_admin_init() {
 		 */
 		if ( method_exists( 'Yoast_Tracking', 'get_instance' ) ) {
 			add_action( 'yoast_tracking', array( 'Yoast_Tracking', 'get_instance' ) );
-		} else {
+		}
+		else {
 			$GLOBALS['yoast_tracking'] = new Yoast_Tracking;
 		}
 	}
@@ -261,6 +265,7 @@ function wpseo_admin_init() {
 	if ( $options['enablexmlsitemap'] === true ) {
 		$GLOBALS['wpseo_sitemaps_admin'] = new WPSEO_Sitemaps_Admin;
 	}
+
 }
 
 add_action( 'plugins_loaded', 'wpseo_init', 14 );
@@ -268,12 +273,20 @@ add_action( 'plugins_loaded', 'wpseo_init', 14 );
 if ( is_admin() ) {
 	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
 		require_once( WPSEO_PATH . 'admin/ajax.php' );
-	} else {
+	}
+	else {
 		add_action( 'plugins_loaded', 'wpseo_admin_init', 15 );
 	}
-} else {
+}
+else {
 	add_action( 'plugins_loaded', 'wpseo_frontend_init', 15 );
 }
+
+function load_yoast_notifications() {
+	// Init Yoast_Notification_Center class
+	Yoast_Notification_Center::get();
+}
+add_action( 'admin_init', 'load_yoast_notifications' );
 
 // Activation and deactivation hook
 register_activation_hook( WPSEO_FILE, 'wpseo_activate' );

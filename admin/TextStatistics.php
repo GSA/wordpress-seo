@@ -16,7 +16,7 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 	 * Mostly removed functionality that isn't needed within the WordPress SEO plugin.
 	 *
 	 * @link    http://code.google.com/p/php-text-statistics/
-	 * @link    https://github.com/DaveChild/Text-Statistics (new repo location)
+	 * @link	https://github.com/DaveChild/Text-Statistics (new repo location)
 	 * @license http://www.opensource.org/licenses/bsd-license.php New BSD license
 	 *
 	 * @todo [JRF => whomever] Research if a class/library can be found which will offer
@@ -44,7 +44,7 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 		/**
 		 * Constructor.
 		 *
-		 * @param string $strEncoding Optional character encoding.
+		 * @param string  $strEncoding    Optional character encoding.
 		 */
 		public function __construct( $strEncoding = '' ) {
 			if ( $strEncoding <> '' ) {
@@ -57,8 +57,7 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 		/**
 		 * Gives the Flesch-Kincaid Reading Ease of text entered rounded to one digit
 		 *
-		 * @param  string $strText Text to be checked
-		 *
+		 * @param  string $strText         Text to be checked
 		 * @return int|float
 		 */
 		public function flesch_kincaid_reading_ease( $strText ) {
@@ -101,8 +100,8 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 		 * @return int
 		 */
 		public function letter_count( $strText ) {
-			$strText = $this->clean_text( $strText ); // To clear out newlines etc
-			$strText = preg_replace( '`[^A-Za-z]+`', '', $strText );
+			$strText       = $this->clean_text( $strText ); // To clear out newlines etc
+			$strText       = preg_replace( '`[^A-Za-z]+`', '', $strText );
 
 			if ( ! $this->blnMbstring ) {
 				return strlen( $strText );
@@ -124,8 +123,7 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 		/**
 		 * Trims, removes line breaks, multiple spaces and generally cleans text before processing.
 		 *
-		 * @param string $strText Text to be transformed
-		 *
+		 * @param string $strText      Text to be transformed
 		 * @return string
 		 */
 		protected function clean_text( $strText ) {
@@ -133,8 +131,8 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 
 			$key = sha1( $strText );
 
-			if ( isset( $clean[ $key ] ) ) {
-				return $clean[ $key ];
+			if ( isset( $clean[$key] ) ) {
+				return $clean[$key];
 			}
 
 			// all these tags should be preceeded by a full stop.
@@ -156,16 +154,14 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 			$strText = trim( $strText );
 
 			// Cache it and return
-			$clean[ $key ] = $strText;
-
+			$clean[$key] = $strText;
 			return $strText;
 		}
 
 		/**
 		 * Converts string to lower case. Tries mb_strtolower and if that fails uses regular strtolower.
 		 *
-		 * @param string $strText Text to be transformed
-		 *
+		 * @param string $strText      Text to be transformed
 		 * @return string
 		 */
 		protected function lower_case( $strText ) {
@@ -190,8 +186,7 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 		/**
 		 * Converts string to upper case. Tries mb_strtoupper and if that fails uses regular strtoupper.
 		 *
-		 * @param string $strText Text to be transformed
-		 *
+		 * @param string $strText      Text to be transformed
 		 * @return string
 		 */
 		protected function upper_case( $strText ) {
@@ -215,8 +210,7 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 		/**
 		 * Returns sentence count for text.
 		 *
-		 * @param   string $strText Text to be measured
-		 *
+		 * @param   string $strText      Text to be measured
 		 * @return int
 		 */
 		public function sentence_count( $strText ) {
@@ -230,15 +224,13 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 			// @todo [JRF => whomever] May be replace with something along the lines of this - will at least provide better count in ... and ?! situations:
 			// $intSentences = max( 1, preg_match_all( '`[^\.!?]+[\.!?]+([\s]+|$)`u', $strText, $matches ) ); [/JRF]
 			$intSentences = max( 1, $this->text_length( preg_replace( '`[^\.!?]`', '', $strText ) ) );
-
 			return $intSentences;
 		}
 
 		/**
 		 * Returns word count for text.
 		 *
-		 * @param  string $strText Text to be measured
-		 *
+		 * @param  string $strText      Text to be measured
 		 * @return int
 		 */
 		public function word_count( $strText ) {
@@ -255,23 +247,20 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 		/**
 		 * Returns average words per sentence for text.
 		 *
-		 * @param string $strText Text to be measured
-		 *
+		 * @param string $strText      Text to be measured
 		 * @return int|float
 		 */
 		public function average_words_per_sentence( $strText ) {
 			$strText          = $this->clean_text( $strText );
 			$intSentenceCount = $this->sentence_count( $strText );
 			$intWordCount     = $this->word_count( $strText );
-
 			return ( wpseo_calc( $intWordCount, '/', $intSentenceCount ) );
 		}
 
 		/**
 		 * Returns average syllables per word for text.
 		 *
-		 * @param string $strText Text to be measured
-		 *
+		 * @param string  $strText      Text to be measured
 		 * @return int|float
 		 */
 		public function average_syllables_per_word( $strText ) {
@@ -279,10 +268,9 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 			$intSyllableCount = 0;
 			$intWordCount     = $this->word_count( $strText );
 			$arrWords         = explode( ' ', $strText );
-			for ( $i = 0; $i < $intWordCount; $i ++ ) {
-				$intSyllableCount += $this->syllable_count( $arrWords[ $i ] );
+			for ( $i = 0; $i < $intWordCount; $i++ ) {
+				$intSyllableCount += $this->syllable_count( $arrWords[$i] );
 			}
-
 			return ( wpseo_calc( $intSyllableCount, '/', $intWordCount ) );
 		}
 
@@ -290,8 +278,7 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 		 * Returns the number of syllables in the word.
 		 * Based in part on Greg Fast's Perl module Lingua::EN::Syllables
 		 *
-		 * @param string $strWord Word to be measured
-		 *
+		 * @param string  $strWord Word to be measured
 		 * @return int
 		 */
 		public function syllable_count( $strWord ) {
@@ -312,8 +299,8 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 				'forever'   => 3,
 				'shoreline' => 2,
 			);
-			if ( isset( $arrProblemWords[ $strWord ] ) ) {
-				$intSyllableCount = $arrProblemWords[ $strWord ];
+			if ( isset( $arrProblemWords[$strWord] ) ) {
+				$intSyllableCount = $arrProblemWords[$strWord];
 			}
 			if ( $intSyllableCount > 0 ) {
 				return $intSyllableCount;
@@ -372,7 +359,7 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 			);
 
 			// Remove prefixes and suffixes and count how many were taken
-			$strWord = preg_replace( $arrPrefixSuffix, '', $strWord, - 1, $intPrefixSuffixCount );
+			$strWord = preg_replace( $arrPrefixSuffix, '', $strWord, -1, $intPrefixSuffixCount );
 
 			// Removed non-word characters from word
 			$strWord          = preg_replace( '`[^a-z]`is', '', $strWord );
@@ -380,7 +367,7 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 			$intWordPartCount = 0;
 			foreach ( $arrWordParts as $strWordPart ) {
 				if ( $strWordPart <> '' ) {
-					$intWordPartCount ++;
+					$intWordPartCount++;
 				}
 			}
 
@@ -394,7 +381,6 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 				$intSyllableCount += preg_match( '`' . $strSyllable . '`', $strWord );
 			}
 			$intSyllableCount = ( $intSyllableCount == 0 ) ? 1 : $intSyllableCount;
-
 			return $intSyllableCount;
 		}
 
@@ -404,11 +390,10 @@ if ( ! class_exists( 'Yoast_TextStatistics' ) ) {
 		 * Also rounds result to specified precision.
 		 * Thanks to github.com/lvil.
 		 *
-		 * @param    int|float $score Initial score
-		 * @param    int $min Minimum score allowed
-		 * @param    int $max Maximum score allowed
-		 *
-		 * @return    int|float
+		 * @param	int|float  $score	Initial score
+		 * @param	int 	   $min 	Minimum score allowed
+		 * @param	int 	   $max 	Maximum score allowed
+		 * @return	int|float
 		 */
 		public function normalize_score( $score, $min, $max, $dps = 1 ) {
 			$score = wpseo_calc( $score, '+', 0, true, $dps ); // Round

@@ -40,9 +40,9 @@ function wpseo_set_ignore() {
 
 	check_ajax_referer( 'wpseo-ignore' );
 
-	$options                            = get_option( 'wpseo' );
-	$ignore_key                         = sanitize_text_field( $_POST['option'] );
-	$options[ 'ignore_' . $ignore_key ] = true;
+	$options                          = get_option( 'wpseo' );
+	$ignore_key 					  = sanitize_text_field( $_POST['option'] );
+	$options['ignore_' . $ignore_key] = true;
 	update_option( 'wpseo', $options );
 	die( '1' );
 }
@@ -62,14 +62,15 @@ function wpseo_kill_blocking_files() {
 	$message = 'There were no files to delete.';
 	$options = get_option( 'wpseo' );
 	if ( is_array( $options['blocking_files'] ) && $options['blocking_files'] !== array() ) {
-		$message       = 'success';
+		$message = 'success';
 		$files_removed = 0;
 		foreach ( $options['blocking_files'] as $k => $file ) {
 			if ( ! @unlink( $file ) ) {
 				$message = __( 'Some files could not be removed. Please remove them via FTP.', 'wordpress-seo' );
-			} else {
-				unset( $options['blocking_files'][ $k ] );
-				$files_removed ++;
+			}
+			else {
+				unset( $options['blocking_files'][$k] );
+				$files_removed++;
 			}
 		}
 		if ( $files_removed > 0 ) {
@@ -90,15 +91,17 @@ function wpseo_get_suggest() {
 	check_ajax_referer( 'wpseo-get-suggest' );
 
 	$term   = urlencode( $_GET['term'] );
-	$result = wp_remote_get( 'http://www.google.com/complete/search?output=toolbar&q=' . $term );
-
-	preg_match_all( '`suggestion data="([^"]+)"/>`u', $result['body'], $matches );
+	$result = wp_remote_get( 'https://www.google.com/complete/search?output=toolbar&q=' . $term );
 
 	$return_arr = array();
 
-	if ( isset( $matches[1] ) && ( is_array( $matches[1] ) && $matches[1] !== array() ) ) {
-		foreach ( $matches[1] as $match ) {
-			$return_arr[] = html_entity_decode( $match, ENT_COMPAT, 'UTF-8' );
+	if ( ! is_wp_error( $result ) ) {
+		preg_match_all( '`suggestion data="([^"]+)"/>`u', $result['body'], $matches );
+
+		if ( isset( $matches[1] ) && ( is_array( $matches[1] ) && $matches[1] !== array() ) ) {
+			foreach ( $matches[1] as $match ) {
+				$return_arr[] = html_entity_decode( $match, ENT_COMPAT, 'UTF-8' );
+			}
 		}
 	}
 	echo json_encode( $return_arr );
@@ -112,7 +115,7 @@ add_action( 'wp_ajax_wpseo_get_suggest', 'wpseo_get_suggest' );
  */
 function wpseo_save_title() {
 
-	$new_title      = $_POST['new_title'];
+	$new_title      = $_POST['new_title'] ;
 	$id             = intval( $_POST['wpseo_post_id'] );
 	$original_title = $_POST['existing_title'];
 
@@ -132,7 +135,6 @@ function wpseo_upsert_new_title( $post_id, $new_title, $original_title ) {
 
 	$meta_key   = WPSEO_Meta::$meta_prefix . 'title';
 	$return_key = 'title';
-
 	return wpseo_upsert_meta( $post_id, $new_title, $original_title, $meta_key, $return_key );
 }
 
@@ -151,7 +153,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 
 	$the_post = get_post( $post_id );
 	if ( empty( $the_post ) ) {
-
+		
 		$upsert_results['status']  = 'failure';
 		$upsert_results['results'] = __( 'Post doesn\'t exist.', 'wordpress-seo' );
 
@@ -160,7 +162,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 
 	$post_type_object = get_post_type_object( $the_post->post_type );
 	if ( ! $post_type_object ) {
-
+		
 		$upsert_results['status']  = 'failure';
 		$upsert_results['results'] = sprintf( __( 'Post has an invalid Post Type: %s.', 'wordpress-seo' ), $the_post->post_type );
 
@@ -168,7 +170,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 	}
 
 	if ( ! current_user_can( $post_type_object->cap->edit_posts ) ) {
-
+		
 		$upsert_results['status']  = 'failure';
 		$upsert_results['results'] = sprintf( __( 'You can\'t edit %s.', 'wordpress-seo' ), $post_type_object->label );
 
@@ -176,7 +178,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 	}
 
 	if ( ! current_user_can( $post_type_object->cap->edit_others_posts ) && $the_post->post_author != get_current_user_id() ) {
-
+		
 		$upsert_results['status']  = 'failure';
 		$upsert_results['results'] = sprintf( __( 'You can\'t edit %s that aren\'t yours.', 'wordpress-seo' ), $post_type_object->label );
 
@@ -218,7 +220,7 @@ add_action( 'wp_ajax_wpseo_save_all_titles', 'wpseo_save_all_titles' );
  */
 function wpseo_save_description() {
 
-	$new_metadesc      = $_POST['new_metadesc'];
+	$new_metadesc      = $_POST['new_metadesc'] ;
 	$id                = intval( $_POST['wpseo_post_id'] );
 	$original_metadesc = $_POST['existing_metadesc'];
 
@@ -237,7 +239,6 @@ function wpseo_upsert_new_description( $post_id, $new_metadesc, $original_metade
 
 	$meta_key   = WPSEO_Meta::$meta_prefix . 'metadesc';
 	$return_key = 'metadesc';
-
 	return wpseo_upsert_meta( $post_id, $new_metadesc, $original_metadesc, $meta_key, $return_key );
 }
 

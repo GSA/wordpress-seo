@@ -19,7 +19,8 @@ if ( isset( $_GET['allow_tracking'] ) && check_admin_referer( 'wpseo_activate_tr
 	$options['tracking_popup_done'] = true;
 	if ( $_GET['allow_tracking'] == 'yes' ) {
 		$options['yoast_tracking'] = true;
-	} else {
+	}
+	else {
 		$options['yoast_tracking'] = false;
 	}
 	update_option( 'wpseo', $options );
@@ -37,7 +38,8 @@ if ( isset( $_GET['fixmetadesc'] ) && check_admin_referer( 'wpseo-fix-metadesc',
 	if ( file_exists( get_stylesheet_directory() . '/header.php' ) ) {
 		// theme or child theme
 		$path = get_stylesheet_directory();
-	} elseif ( file_exists( get_template_directory() . '/header.php' ) ) {
+	}
+	elseif ( file_exists( get_template_directory() . '/header.php' ) ) {
 		// parent theme in case of a child theme
 		$path = get_template_directory();
 	}
@@ -63,12 +65,14 @@ if ( isset( $_GET['fixmetadesc'] ) && check_admin_referer( 'wpseo-fix-metadesc',
 							$options['theme_has_description']   = false;
 							$options['theme_description_found'] = '';
 							update_option( 'wpseo', $options );
-						} else {
+						}
+						else {
 							$msg .= '<span class="error">' . __( 'Failed to remove hardcoded meta description.', 'wordpress-seo' ) . '</span>';
 						}
 						fclose( $header_file );
 					}
-				} else {
+				}
+				else {
 					wpseo_description_test();
 					$msg .= '<span class="warning">' . __( 'Earlier found meta description was not found in file. Renewed the description test data.', 'wordpress-seo' ) . '</span>';
 				}
@@ -78,7 +82,7 @@ if ( isset( $_GET['fixmetadesc'] ) && check_admin_referer( 'wpseo-fix-metadesc',
 	}
 
 	// Clean up the referrer url for later use
-	if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+	if( isset( $_SERVER['REQUEST_URI'] ) ) {
 		$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'nonce', 'fixmetadesc' ), $_SERVER['REQUEST_URI'] );
 	}
 }
@@ -88,12 +92,13 @@ if ( ( ! isset( $options['theme_has_description'] ) || ( ( isset( $options['them
 	// Renew the options after the test
 	$options = get_option( 'wpseo' );
 }
-if ( isset( $_GET['checkmetadesc'] ) ) {
+if( isset( $_GET['checkmetadesc'] ) ) {
 	// Clean up the referrer url for later use
-	if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+	if( isset( $_SERVER['REQUEST_URI'] ) ) {
 		$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'nonce', 'checkmetadesc' ), $_SERVER['REQUEST_URI'] );
 	}
 }
+
 
 
 $wpseo_admin_pages->admin_header( true, WPSEO_Options::get_group_name( 'wpseo' ), 'wpseo' );
@@ -102,8 +107,8 @@ do_action( 'wpseo_all_admin_notices' );
 
 if ( is_array( $options['blocking_files'] ) && count( $options['blocking_files'] ) > 0 ) {
 	echo '<p id="blocking_files" class="wrong">'
-	     . '<a href="javascript:wpseo_killBlockingFiles(\'' . esc_js( wp_create_nonce( 'wpseo-blocking-files' ) ) . '\')" class="button fixit">' . __( 'Fix it.', 'wordpress-seo' ) . '</a>'
-	     . __( 'The following file(s) is/are blocking your XML sitemaps from working properly:', 'wordpress-seo' ) . '<br />';
+		. '<a href="javascript:wpseo_killBlockingFiles(\'' . esc_js( wp_create_nonce( 'wpseo-blocking-files' ) ) . '\')" class="button fixit">' . __( 'Fix it.', 'wordpress-seo' ) . '</a>'
+		. __( 'The following file(s) is/are blocking your XML sitemaps from working properly:', 'wordpress-seo' ) . '<br />';
 	foreach ( $options['blocking_files'] as $file ) {
 		echo esc_html( $file ) . '<br/>';
 	}
@@ -114,27 +119,25 @@ if ( is_array( $options['blocking_files'] ) && count( $options['blocking_files']
 
 if ( $options['theme_description_found'] !== '' ) {
 	echo '<p id="metadesc_found notice" class="wrong settings_error">'
-	     . '<a href="' . esc_url( add_query_arg( array( 'nonce' => wp_create_nonce( 'wpseo-fix-metadesc' ) ), admin_url( 'admin.php?page=wpseo_dashboard&fixmetadesc' ) ) ) . '" class="button fixit">' . __( 'Fix it.', 'wordpress-seo' ) . '</a>'
-	     . ' <a href="' . esc_url( add_query_arg( array( 'nonce' => wp_create_nonce( 'wpseo-check-metadesc' ) ), admin_url( 'admin.php?page=wpseo_dashboard&checkmetadesc' ) ) ) . '" class="button checkit">' . __( 'Re-check theme.', 'wordpress-seo' ) . '</a>'
-	     . __( 'Your theme contains a meta description, which blocks WordPress SEO from working properly, please delete the following line, or press fix it:', 'wordpress-seo' ) . '<br />';
+		. '<a href="' . esc_url( add_query_arg( array( 'nonce' => wp_create_nonce( 'wpseo-fix-metadesc' ) ), admin_url( 'admin.php?page=wpseo_dashboard&fixmetadesc' ) ) ) . '" class="button fixit">' . __( 'Fix it.', 'wordpress-seo' ) . '</a>'
+		. ' <a href="' . esc_url( add_query_arg( array( 'nonce' => wp_create_nonce( 'wpseo-check-metadesc' ) ), admin_url( 'admin.php?page=wpseo_dashboard&checkmetadesc' ) ) ) . '" class="button checkit">' . __( 'Re-check theme.', 'wordpress-seo' ) . '</a>'
+		. __( 'Your theme contains a meta description, which blocks WordPress SEO from working properly, please delete the following line, or press fix it:', 'wordpress-seo' ) . '<br />';
 	echo '<code>' . esc_html( $options['theme_description_found'] ) . '</code>';
 	echo '</p>';
 }
 
 
-if ( strpos( get_option( 'permalink_structure' ), '%postname%' ) === false && $options['ignore_permalink'] === false ) {
+if ( strpos( get_option( 'permalink_structure' ), '%postname%' ) === false && $options['ignore_permalink'] === false )
 	echo '<p id="wrong_permalink" class="wrong">'
-	     . '<a href="' . esc_url( admin_url( 'options-permalink.php' ) ) . '" class="button fixit">' . __( 'Fix it.', 'wordpress-seo' ) . '</a>'
-	     . '<a href="javascript:wpseo_setIgnore(\'permalink\',\'wrong_permalink\',\'' . esc_js( wp_create_nonce( 'wpseo-ignore' ) ) . '\');" class="button fixit">' . __( 'Ignore.', 'wordpress-seo' ) . '</a>'
-	     . __( 'You do not have your postname in the URL of your posts and pages, it is highly recommended that you do. Consider setting your permalink structure to <strong>/%postname%/</strong>.', 'wordpress-seo' ) . '</p>';
-}
+		. '<a href="' . esc_url( admin_url( 'options-permalink.php' ) ) . '" class="button fixit">' . __( 'Fix it.', 'wordpress-seo' ) . '</a>'
+		. '<a href="javascript:wpseo_setIgnore(\'permalink\',\'wrong_permalink\',\'' . esc_js( wp_create_nonce( 'wpseo-ignore' ) ) . '\');" class="button fixit">' . __( 'Ignore.', 'wordpress-seo' ) . '</a>'
+		. __( 'You do not have your postname in the URL of your posts and pages, it is highly recommended that you do. Consider setting your permalink structure to <strong>/%postname%/</strong>.', 'wordpress-seo' ) . '</p>';
 
-if ( get_option( 'page_comments' ) && $options['ignore_page_comments'] === false ) {
+if ( get_option( 'page_comments' ) && $options['ignore_page_comments'] === false )
 	echo '<p id="wrong_page_comments" class="wrong">'
-	     . '<a href="javascript:setWPOption(\'page_comments\',\'0\',\'wrong_page_comments\',\'' . esc_js( wp_create_nonce( 'wpseo-setoption' ) ) . '\');" class="button fixit">' . __( 'Fix it.', 'wordpress-seo' ) . '</a>'
-	     . '<a href="javascript:wpseo_setIgnore(\'page_comments\',\'wrong_page_comments\',\'' . esc_js( wp_create_nonce( 'wpseo-ignore' ) ) . '\');" class="button fixit">' . __( 'Ignore.', 'wordpress-seo' ) . '</a>'
-	     . __( 'Paging comments is enabled, this is not needed in 999 out of 1000 cases, so the suggestion is to disable it, to do that, simply uncheck the box before "Break comments into pages..."', 'wordpress-seo' ) . '</p>';
-}
+		. '<a href="javascript:setWPOption(\'page_comments\',\'0\',\'wrong_page_comments\',\'' . esc_js( wp_create_nonce( 'wpseo-setoption' ) ) . '\');" class="button fixit">' . __( 'Fix it.', 'wordpress-seo' ) . '</a>'
+		. '<a href="javascript:wpseo_setIgnore(\'page_comments\',\'wrong_page_comments\',\'' . esc_js( wp_create_nonce( 'wpseo-ignore' ) ) . '\');" class="button fixit">' . __( 'Ignore.', 'wordpress-seo' ) . '</a>'
+		. __( 'Paging comments is enabled, this is not needed in 999 out of 1000 cases, so the suggestion is to disable it, to do that, simply uncheck the box before "Break comments into pages..."', 'wordpress-seo' ) . '</p>';
 
 echo '<h2>' . __( 'General', 'wordpress-seo' ) . '</h2>';
 

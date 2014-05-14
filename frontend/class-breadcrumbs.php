@@ -14,62 +14,62 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 	 * This class handles the Breadcrumbs generation and display
 	 */
 	class WPSEO_Breadcrumbs {
-
+		
 		/**
-		 * @var    object    Instance of this class
+		 * @var	object	Instance of this class
 		 */
 		public static $instance;
 
 		/**
-		 * @var string    Last used 'before' string
+		 * @var string	Last used 'before' string
 		 */
 		public static $before = '';
 
 		/**
-		 * @var string    Last used 'after' string
+		 * @var string	Last used 'after' string
 		 */
 		public static $after = '';
 
 
 		/**
-		 * @var    string    Blog's show on front setting, 'page' or 'posts'
+		 * @var	string	Blog's show on front setting, 'page' or 'posts'
 		 */
 		private $show_on_front;
 
 		/**
-		 * @var    mixed    Blog's page for posts setting, page id or false
+		 * @var	mixed	Blog's page for posts setting, page id or false
 		 */
 		private $page_for_posts;
 
 		/**
-		 * @var mixed    Current post object
+		 * @var mixed	Current post object
 		 */
 		private $post;
 
 		/**
-		 * @var    array    WPSEO options array from get_all()
+		 * @var	array	WPSEO options array from get_all()
 		 */
 		private $options;
 
 
 		/**
-		 * @var string    HTML wrapper element for a single breadcrumb element
+		 * @var string	HTML wrapper element for a single breadcrumb element
 		 */
 		private $element = 'span';
 
 		/**
-		 * @var string    WP SEO breadcrumb separator
+		 * @var string	WP SEO breadcrumb separator
 		 */
 		private $separator = '';
 
 		/**
-		 * @var string    HTML wrapper element for the WP SEO breadcrumbs output
+		 * @var string	HTML wrapper element for the WP SEO breadcrumbs output
 		 */
 		private $wrapper = 'span';
 
 
 		/**
-		 * @var    array    Array of crumbs
+		 * @var	array	Array of crumbs
 		 *
 		 * Each element of the crumbs array can either have one of these keys:
 		 *    "id"         for post types;
@@ -80,17 +80,17 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		private $crumbs = array();
 
 		/**
-		 * @var array    Count of the elements in the $crumbs property
+		 * @var array	Count of the elements in the $crumbs property
 		 */
 		private $crumb_count = 0;
 
 		/**
-		 * @var array    Array of individual (linked) html strings created from crumbs
+		 * @var array	Array of individual (linked) html strings created from crumbs
 		 */
 		private $links = array();
 
 		/**
-		 * @var    string    Breadcrumb html string
+		 * @var	string	Breadcrumb html string
 		 */
 		private $output;
 
@@ -111,7 +111,7 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 			$this->set_crumbs();
 			$this->prepare_links();
 			$this->links_to_string();
-			$this->wrap_breadcrumb();
+			$this->wrap_breadcrumb( );
 		}
 
 		/**
@@ -127,17 +127,17 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 			self::$before = $before;
 			self::$after  = $after;
 
-			$output = $before . "\n" . self::$instance->output . "\n" . $after;
+			$output = $before . self::$instance->output . $after;
 
 			if ( $display === true ) {
 				echo $output;
-
 				return true;
-			} else {
+			}
+			else {
 				return $output;
 			}
 		}
-
+		
 		/**
 		 * Magic method to use in case the class would be send to string
 		 *
@@ -147,7 +147,7 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 			return self::$before . $this->output . self::$after;
 		}
 
-
+		
 		/**
 		 * Filter: 'wpseo_breadcrumb_single_link_wrapper' - Allows developer to change or wrap each breadcrumb element
 		 *
@@ -184,9 +184,8 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		/**
 		 * Get a term's parents.
 		 *
-		 * @param    object $term Term to get the parents for
-		 *
-		 * @return    array
+		 * @param	object	$term	Term to get the parents for
+		 * @return	array
 		 */
 		private function get_term_parents( $term ) {
 			$tax     = $term->taxonomy;
@@ -195,14 +194,13 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 				$term      = get_term( $term->parent, $tax );
 				$parents[] = $term;
 			}
-
 			return array_reverse( $parents );
 		}
-
+		
 		/**
 		 * Find the deepest term in an array of term objects
 		 *
-		 * @param  array $terms
+		 * @param  array	$terms
 		 *
 		 * @return object
 		 */
@@ -211,10 +209,10 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 			   unsetting every term that is used as a parent by another one in the array. */
 			$terms_by_id = array();
 			foreach ( $terms as $term ) {
-				$terms_by_id[ $term->term_id ] = $term;
+				$terms_by_id[$term->term_id] = $term;
 			}
 			foreach ( $terms as $term ) {
-				unset( $terms_by_id[ $term->parent ] );
+				unset( $terms_by_id[$term->parent] );
 			}
 
 			/* As we could still have two subcategories, from different parent categories,
@@ -250,10 +248,9 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 					}
 				}
 			}
-
 			return $deepest_term;
 		}
-
+		
 		/**
 		 * Retrieve the hierachical ancestors for the current 'post'
 		 *
@@ -263,10 +260,12 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 			if ( isset( $this->post->ancestors ) ) {
 				if ( is_array( $this->post->ancestors ) ) {
 					$ancestors = array_values( $this->post->ancestors );
-				} else {
+				}
+				else {
 					$ancestors = array( $this->post->ancestors );
 				}
-			} else {
+			}
+			else {
 				$ancestors = array( $this->post->post_parent );
 			}
 
@@ -276,7 +275,7 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 			 * @api array $ancestors Ancestors
 			 */
 			$ancestors = apply_filters( 'wp_seo_get_bc_ancestors', $ancestors );
-
+			
 			if ( ! is_array( $ancestors ) ) {
 				trigger_error( 'The return value for the "wp_seo_get_bc_ancestors" filter should be an array.', E_USER_WARNING );
 				$ancestors = (array) $ancestors;
@@ -293,52 +292,63 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		 */
 		private function set_crumbs() {
 			global $wp_query;
-
+			
 			$this->add_home_crumb();
 			$this->maybe_add_blog_crumb();
 
 			if ( ( $this->show_on_front === 'page' && is_front_page() ) || ( $this->show_on_front === 'posts' && is_home() ) ) {
-				return;
-			} elseif ( $this->show_on_front == 'page' && is_home() ) {
+				// do nothing
+			}
+			elseif ( $this->show_on_front == 'page' && is_home() ) {
 				$this->add_blog_crumb();
-			} elseif ( is_singular() ) {
+			}
+			elseif ( is_singular() ) {
 				$this->maybe_add_pt_archive_crumb_for_post();
 
 				if ( 0 == $this->post->post_parent ) {
 					$this->maybe_add_taxonomy_crumbs_for_post();
-				} else {
+				}
+				else {
 					$this->add_post_ancestor_crumbs();
 				}
 
 				$this->add_single_post_crumb( $this->post->ID );
-			} else {
+			}
+			else {
 				if ( is_post_type_archive() ) {
 					$this->add_ptarchive_crumb( $wp_query->query['post_type'] );
-				} elseif ( is_tax() || is_tag() || is_category() ) {
+				}
+				elseif ( is_tax() || is_tag() || is_category() ) {
 					$this->add_crumbs_for_taxonomy();
-				} elseif ( is_date() ) {
+				}
+				elseif ( is_date() ) {
 					if ( is_day() ) {
 						$this->add_linked_month_year_crumb();
 						$this->add_date_crumb();
-					} elseif ( is_month() ) {
+					}
+					elseif ( is_month() ) {
 						$this->add_month_crumb();
-					} elseif ( is_year() ) {
+					}
+					elseif ( is_year() ) {
 						$this->add_year_crumb();
 					}
-				} elseif ( is_author() ) {
+				}
+				elseif ( is_author() ) {
 					$user = $wp_query->get_queried_object();
 					$this->add_predefined_crumb(
 						$this->options['breadcrumbs-archiveprefix'] . ' ' . $user->display_name,
 						null,
 						true
 					);
-				} elseif ( is_search() ) {
+				}
+				elseif ( is_search() ) {
 					$this->add_predefined_crumb(
 						$this->options['breadcrumbs-searchprefix'] . ' "' . esc_html( get_search_query() ) . '"',
 						null,
 						true
 					);
-				} elseif ( is_404() ) {
+				}
+				elseif ( is_404() ) {
 
 					if ( 0 !== get_query_var( 'year' ) || ( 0 !== get_query_var( 'monthnum' ) || 0 !== get_query_var( 'day' ) ) ) {
 						if ( 'page' == $this->show_on_front && ! is_home() ) {
@@ -352,12 +362,15 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 
 							$date = sprintf( '%04d-%02d-%02d 00:00:00', get_query_var( 'year' ), get_query_var( 'monthnum' ), get_query_var( 'day' ) );
 							$this->add_date_crumb( $date );
-						} elseif ( 0 !== get_query_var( 'monthnum' ) ) {
+						}
+						elseif ( 0 !== get_query_var( 'monthnum' ) ) {
 							$this->add_month_crumb();
-						} elseif ( 0 !== get_query_var( 'year' ) ) {
+						}
+						elseif ( 0 !== get_query_var( 'year' ) ) {
 							$this->add_year_crumb();
 						}
-					} else {
+					}
+					else {
 						$this->add_predefined_crumb(
 							$this->options['breadcrumbs-404crumb'],
 							null,
@@ -395,7 +408,7 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 				'term' => $term,
 			);
 		}
-
+		
 		/**
 		 * Add a ptarchive based crumb to the crumbs property
 		 */
@@ -404,7 +417,7 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 				'ptarchive' => $pt,
 			);
 		}
-
+		
 		/**
 		 * Add a predefined crumb to the crumbs property
 		 */
@@ -459,8 +472,8 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		 * Add taxonomy crumbs to the crumbs property for a single post
 		 */
 		private function maybe_add_taxonomy_crumbs_for_post() {
-			if ( isset( $this->options[ 'post_types-' . $this->post->post_type . '-maintax' ] ) && $this->options[ 'post_types-' . $this->post->post_type . '-maintax' ] != '0' ) {
-				$main_tax = $this->options[ 'post_types-' . $this->post->post_type . '-maintax' ];
+			if ( isset( $this->options['post_types-' . $this->post->post_type . '-maintax'] ) && $this->options['post_types-' . $this->post->post_type . '-maintax'] != '0' ) {
+				$main_tax = $this->options['post_types-' . $this->post->post_type . '-maintax'];
 				$terms    = wp_get_object_terms( $this->post->ID, $main_tax );
 
 				if ( is_array( $terms ) && $terms !== array() ) {
@@ -511,13 +524,14 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		 * Add parent taxonomy crumb based on user defined preference
 		 */
 		private function maybe_add_preferred_term_parent_crumb( $term ) {
-			if ( isset( $this->options[ 'taxonomy-' . $term->taxonomy . '-ptparent' ] ) && $this->options[ 'taxonomy-' . $term->taxonomy . '-ptparent' ] != '0' ) {
-				if ( 'post' == $this->options[ 'taxonomy-' . $term->taxonomy . '-ptparent' ] && get_option( 'show_on_front' ) == 'page' ) {
+			if ( isset( $this->options['taxonomy-' . $term->taxonomy . '-ptparent'] ) && $this->options['taxonomy-' . $term->taxonomy . '-ptparent'] != '0' ) {
+				if ( 'post' == $this->options['taxonomy-' . $term->taxonomy . '-ptparent'] && get_option( 'show_on_front' ) == 'page' ) {
 					if ( $this->page_for_posts ) {
 						$this->add_blog_crumb();
 					}
-				} else {
-					$this->add_ptarchive_crumb( $this->options[ 'taxonomy-' . $term->taxonomy . '-ptparent' ] );
+				}
+				else {
+					$this->add_ptarchive_crumb( $this->options['taxonomy-' . $term->taxonomy . '-ptparent'] );
 				}
 			}
 		}
@@ -555,7 +569,7 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 				true
 			);
 		}
-
+		
 		/**
 		 * Add (non-link) year crumb to crumbs property
 		 */
@@ -573,8 +587,9 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		private function add_date_crumb( $date = null ) {
 			if ( is_null( $date ) ) {
 				$date = get_the_date();
-			} else {
-				$date = mysql2date( get_option( 'date_format' ), $date );
+			}
+			else {
+				$date = mysql2date( get_option( 'date_format' ), $date, true );
 				$date = apply_filters( 'get_the_date', $date, '' );
 			}
 
@@ -612,13 +627,13 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 				$this->links[] = $this->crumb_to_link( $link_info, $i );
 			}
 		}
-
+		
 		/**
 		 * Retrieve link url and text based on post id
 		 *
-		 * @param    int $id Post id
+		 * @param	int		$id		Post id
 		 *
-		 * @return    array    $link    Array of link text and url
+		 * @return	array	$link	Array of link text and url
 		 */
 		private function get_link_info_for_id( $id ) {
 			$link = array();
@@ -644,9 +659,9 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		/**
 		 * Retrieve link url and text based on term object
 		 *
-		 * @param    object $term Term object
+		 * @param	object	$term	Term object
 		 *
-		 * @return    array    $link    Array of link text and url
+		 * @return	array	$link	Array of link text and url
 		 */
 		private function get_link_info_for_term( $term ) {
 			$link = array();
@@ -665,25 +680,28 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		/**
 		 * Retrieve link url and text based on post type
 		 *
-		 * @param    string $pt Post type
+		 * @param	string	$pt		Post type
 		 *
-		 * @return    array    $link    Array of link text and url
+		 * @return	array	$link	Array of link text and url
 		 */
 		private function get_link_info_for_ptarchive( $pt ) {
 			$link          = array();
 			$archive_title = '';
 
-			if ( isset( $this->options[ 'bctitle-ptarchive-' . $pt ] ) && $this->options[ 'bctitle-ptarchive-' . $pt ] !== '' ) {
+			if ( isset( $this->options['bctitle-ptarchive-' . $pt] ) && $this->options['bctitle-ptarchive-' . $pt] !== '' ) {
 
-				$archive_title = $this->options[ 'bctitle-ptarchive-' . $pt ];
-			} else {
+				$archive_title = $this->options['bctitle-ptarchive-' . $pt];
+			}
+			else {
 				$post_type_obj = get_post_type_object( $pt );
 				if ( is_object( $post_type_obj ) ) {
 					if ( isset( $post_type_obj->label ) && $post_type_obj->label !== '' ) {
 						$archive_title = $post_type_obj->label;
-					} elseif ( isset( $post_type_obj->labels->menu_name ) && $post_type_obj->labels->menu_name !== '' ) {
+					}
+					elseif ( isset( $post_type_obj->labels->menu_name ) && $post_type_obj->labels->menu_name !== '' ) {
 						$archive_title = $post_type_obj->labels->menu_name;
-					} else {
+					}
+					else {
 						$archive_title = $post_type_obj->name;
 					}
 				}
@@ -691,7 +709,7 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 
 			$link['url']  = get_post_type_archive_link( $pt );
 			$link['text'] = $archive_title;
-
+			
 			return $link;
 		}
 
@@ -699,14 +717,14 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		/**
 		 * Create a breadcrumb element string
 		 *
-		 * @param    array $link Link info array containing the keys:
-		 *                            'text'    => (string) link text
-		 *                            'url'    => (string) link url
-		 *                            (optional) 'allow_html'    => (bool) whether to (not) escape html in the link text
-		 *                            This prevents html stripping from the text strings set in the
-		 *                            WPSEO -> Internal Links options page
+		 * @param	array	$link	Link info array containing the keys:
+		 *							'text'	=> (string) link text
+		 *							'url'	=> (string) link url
+		 *							(optional) 'allow_html'	=> (bool) whether to (not) escape html in the link text
+		 *							This prevents html stripping from the text strings set in the
+		 *							WPSEO -> Internal Links options page
 		 *
-		 * @return    string
+		 * @return	string
 		 */
 		private function crumb_to_link( $link, $i ) {
 			global $paged; // @todo ? -> only works for archives, not for paged articles
@@ -724,7 +742,7 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 				if ( $this->options['breadcrumbs-boldlast'] === true && $i === ( $this->crumb_count - 1 ) ) {
 					$inner_elm = 'strong';
 				}
-
+				
 				$class = '';
 				if ( $i === ( $this->crumb_count - 1 ) ) {
 					$class = ' class="breadcrumb_last"';
@@ -734,17 +752,16 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 				$link_output = '<' . $this->element . ' typeof="v:Breadcrumb">';
 
 				if ( ( isset( $link['url'] ) && ( is_string( $link['url'] ) && $link['url'] !== '' ) ) &&
-				     ( $i < ( $this->crumb_count - 1 ) || $paged )
-				) {
+					( $i < ( $this->crumb_count - 1 ) || $paged ) ) {
 					$link_output .= '<a href="' . esc_url( $link['url'] ) . '"' . $class . ' rel="v:url" property="v:title">' . $link['text'] . '</a>';
-				} else {
+				}
+				else {
 					$link_output .= '<' . $inner_elm . $class . ' property="v:title">' . $link['text'] . '</' . $inner_elm . '>';
 				}
 
 				$link_output .= '</' . $this->element . '>';
 
 			}
-
 			/**
 			 * Filter: 'wpseo_breadcrumb_single_link' - Allow changing of each link being put out by the WP SEO breadcrumbs class
 			 *
@@ -752,7 +769,6 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 			 *
 			 * @param array $link The link array
 			 */
-
 			return apply_filters( 'wpseo_breadcrumb_single_link', $link_output, $link );
 		}
 
@@ -765,7 +781,7 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 				// Remove any effectively empty links
 				$links = array_map( 'trim', $this->links );
 				$links = array_filter( $links );
-
+	
 				$this->output = implode( $this->separator, $links );
 			}
 		}
@@ -779,22 +795,22 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		<' . $this->wrapper . $this->get_output_id() . $this->get_output_class() . ' xmlns:v="http://rdf.data-vocabulary.org/#">
 			' . $this->output . '
 		</' . $this->wrapper . '>';
-
+	
 				/**
 				 * Filter: 'wpseo_breadcrumb_output' - Allow changing the HTML output of the WP SEO breadcrumbs class
 				 *
 				 * @api string $unsigned HTML output
 				 */
 				$output = apply_filters( 'wpseo_breadcrumb_output', $output );
-
+				
 				if ( $this->options['breadcrumbs-prefix'] !== '' ) {
 					$output = "\t" . $this->options['breadcrumbs-prefix'] . "\n" . $output;
 				}
-
+	
 				$this->output = $output;
 			}
 		}
-
+		
 
 		/**
 		 * Filter: 'wpseo_breadcrumb_output_id' - Allow changing the HTML ID on the WP SEO breadcrumbs wrapper element
@@ -806,7 +822,6 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 			if ( is_string( $id ) && '' !== $id ) {
 				$id = ' id="' . esc_attr( $id ) . '"';
 			}
-
 			return $id;
 		}
 
@@ -820,7 +835,6 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 			if ( is_string( $class ) && '' !== $class ) {
 				$class = ' class="' . esc_attr( $class ) . '"';
 			}
-
 			return $class;
 		}
 
@@ -842,7 +856,7 @@ if ( ! class_exists( 'WPSEO_Breadcrumbs' ) ) {
 		 *
 		 * @deprecated 1.5.2.3
 		 *
-		 * @return    string
+		 * @return	string
 		 */
 		public function create_breadcrumbs_string( $links, $wrapper = 'span', $element = 'span' ) {
 			_deprecated_function( __CLASS__ . '::' . __METHOD__, 'WPSEO 1.5.2.3', 'yoast_breadcrumbs' );

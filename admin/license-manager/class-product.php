@@ -1,6 +1,6 @@
 <?php
 
-if ( ! class_exists( "Yoast_Product" ) ) {
+if( ! class_exists( "Yoast_Product", false ) ) {
 
 	/**
 	 * Class Yoast_Product
@@ -62,6 +62,17 @@ if ( ! class_exists( "Yoast_Product" ) ) {
 			// Fix possible empty item url
 			if ( $this->item_url === '' ) {
 				$this->item_url = $this->api_url;
+			}
+
+			if( is_admin() && is_multisite() ) {
+
+				if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+					require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+				}
+
+				if( is_plugin_active_for_network( $slug ) ) {
+					$this->license_page_url = network_admin_url( $license_page_url );
+				}
 			}
 		}
 
@@ -179,25 +190,27 @@ if ( ! class_exists( "Yoast_Product" ) ) {
 		}
 
 		/**
-		 * Gets a Google Analytics Campaign url for this product
-		 *
-		 * @param string $link_identifier
-		 *
-		 * @return string The full URL
-		 */
+		* Gets a Google Analytics Campaign url for this product
+		*
+		* @param string $link_identifier
+		* @return string The full URL
+		*/
 		public function get_tracking_url( $link_identifier = '' ) {
 
 			$tracking_vars = array(
 				'utm_campaign' => $this->get_item_name() . ' licensing',
-				'utm_medium'   => 'link',
-				'utm_source'   => $this->get_item_name(),
-				'utm_content'  => $link_identifier
+				'utm_medium' => 'link',
+				'utm_source' => $this->get_item_name(),
+				'utm_content' => $link_identifier
 			);
 
 			// url encode tracking vars
 			$tracking_vars = urlencode_deep( $tracking_vars );
 
-			return add_query_arg( $tracking_vars, $this->get_item_url() );
+			$query_string = build_query( $tracking_vars );
+
+
+			return $this->get_item_url() . '#' . $query_string;
 		}
 
 	}

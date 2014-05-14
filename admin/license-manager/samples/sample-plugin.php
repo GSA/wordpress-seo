@@ -50,10 +50,7 @@ class Sample_Plugin {
 	 * Add license page and add it to Themes menu
 	 */
 	public function add_license_menu() {
-		$theme_page = add_options_page( sprintf( __( '%s License', $this->text_domain ), $this->item_name ), sprintf( __( '%s License', $this->text_domain ), $this->item_name ), 'manage_options', $this->text_domain . '-license', array(
-			$this,
-			'show_license_page'
-		) );
+		$theme_page = add_options_page( sprintf( __( '%s License', $this->text_domain ), $this->item_name ), sprintf( __( '%s License', $this->text_domain ), $this->item_name ), 'manage_options', $this->text_domain . '-license', array( $this, 'show_license_page' ) );
 	}
 
 	/**
