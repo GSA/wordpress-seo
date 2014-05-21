@@ -505,12 +505,7 @@ if ( ! class_exists( 'WPSEO_Frontend' ) ) {
 		 * @return string
 		 */
 		public function debug_marker( $echo = true ) {
-			$marker = '<!-- This site is optimized with the Yoast WordPress SEO plugin v' . WPSEO_VERSION . ' - https://yoast.com/wordpress/plugins/seo/ -->';
-			if ( $echo === false ) {
-				return $marker;
-			} else {
-				echo "\n${marker}\n";
-			}
+            return;
 		}
 
 		/**
@@ -562,8 +557,6 @@ if ( ! class_exists( 'WPSEO_Frontend' ) ) {
 			 * Action: 'wpseo_head' - Allow other plugins to output inside the WP SEO section of the head section.
 			 */
 			do_action( 'wpseo_head' );
-
-			echo "<!-- / Yoast WordPress SEO plugin. -->\n\n";
 
 			if ( ! empty( $old_wp_query ) ) {
 				$GLOBALS['wp_query'] = $old_wp_query;
@@ -1642,7 +1635,7 @@ if ( ! class_exists( 'WPSEO_Frontend' ) ) {
 
 			global $wp_version;
 			if ( $_SERVER['HTTP_USER_AGENT'] == "WordPress/${wp_version}; " . get_bloginfo( 'url' ) . ' - Yoast' ) {
-				return 'This is a Yoast Test Title';
+				return 'This is a WPSEO Test Title';
 			}
 
 			return $title;
