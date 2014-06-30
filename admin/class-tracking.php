@@ -23,7 +23,7 @@ if ( ! class_exists( 'Yoast_Tracking' ) ) {
 	class Yoast_Tracking {
 
 		/**
-		 * @var	object	Instance of this class
+		 * @var    object    Instance of this class
 		 */
 		public static $instance;
 
@@ -35,8 +35,7 @@ if ( ! class_exists( 'Yoast_Tracking' ) ) {
 			// Constructor is called from WP SEO
 			if ( current_filter( 'yoast_tracking' ) ) {
 				$this->tracking();
-			}
-			// Backward compatibility - constructor is called from other Yoast plugin
+			} // Backward compatibility - constructor is called from other Yoast plugin
 			elseif ( ! has_action( 'yoast_tracking', array( $this, 'tracking' ) ) ) {
 				add_action( 'yoast_tracking', array( $this, 'tracking' ) );
 			}
@@ -51,6 +50,7 @@ if ( ! class_exists( 'Yoast_Tracking' ) ) {
 			if ( ! ( self::$instance instanceof self ) ) {
 				self::$instance = new self();
 			}
+
 			return self::$instance;
 		}
 
@@ -59,12 +59,16 @@ if ( ! class_exists( 'Yoast_Tracking' ) ) {
 		 */
 		function tracking() {
 
-			$data = get_transient( 'yoast_tracking_cache' );
+			$transient_key = 'yoast_tracking_cache';
+			$data          = get_transient( $transient_key );
 
 			// bail if transient is set and valid
-			if( $data !== false ) {
+			if ( $data !== false ) {
 				return;
 			}
+
+			// Make sure to only send tracking data once a week
+			set_transient( $transient_key, 1, WEEK_IN_SECONDS );
 
 			// Start of Metrics
 			global $blog_id, $wpdb;
@@ -89,8 +93,8 @@ if ( ! class_exists( 'Yoast_Tracking' ) ) {
 
 			$comments_count = wp_count_comments();
 
-			$theme_data = wp_get_theme();
-			$theme      = array(
+			$theme_data     = wp_get_theme();
+			$theme          = array(
 				'name'       => $theme_data->display( 'Name', false, false ),
 				'theme_uri'  => $theme_data->display( 'ThemeURI', false, false ),
 				'version'    => $theme_data->display( 'Version', false, false ),
@@ -106,14 +110,13 @@ if ( ! class_exists( 'Yoast_Tracking' ) ) {
 					'author'     => $theme_data->parent()->display( 'Author', false, false ),
 					'author_uri' => $theme_data->parent()->display( 'AuthorURI', false, false ),
 				);
-			}
-			else {
+			} else {
 				$theme['template'] = '';
 			}
 			unset( $theme_template );
 
 
-			$plugins = array();
+			$plugins       = array();
 			$active_plugin = get_option( 'active_plugins' );
 			foreach ( $active_plugin as $plugin_path ) {
 				if ( ! function_exists( 'get_plugin_data' ) ) {
@@ -132,34 +135,35 @@ if ( ! class_exists( 'Yoast_Tracking' ) ) {
 				);
 			}
 			unset( $active_plugins, $plugin_path );
-
+			
+			
 			$data = array(
-				'site'     => array(
+				'site'      => array(
 					'hash'      => $hash,
 					'version'   => get_bloginfo( 'version' ),
 					'multisite' => is_multisite(),
 					'users'     => $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->users INNER JOIN $wpdb->usermeta ON ({$wpdb->users}.ID = {$wpdb->usermeta}.user_id) WHERE 1 = 1 AND ( {$wpdb->usermeta}.meta_key = %s )", 'wp_' . $blog_id . '_capabilities' ) ),
 					'lang'      => get_locale(),
 				),
-				'pts'      => $pts,
-				'comments' => array(
+				'pts'       => $pts,
+				'comments'  => array(
 					'total'    => $comments_count->total_comments,
 					'approved' => $comments_count->approved,
 					'spam'     => $comments_count->spam,
 					'pings'    => $wpdb->get_var( "SELECT COUNT(comment_ID) FROM $wpdb->comments WHERE comment_type = 'pingback'" ),
 				),
-				'options'  => apply_filters( 'yoast_tracking_filters', array() ),
-				'theme'    => $theme,
-				'plugins'  => $plugins,
+				'options'   => apply_filters( 'yoast_tracking_filters', array() ),
+				'theme'     => $theme,
+				'plugins'   => $plugins,
 			);
 
 			$args = array(
-				'body' => $data,
+				'body'      => $data,
+				'blocking'  => false,
+				'sslverify' => false,
 			);
-			wp_remote_post( 'https://tracking.yoast.com/', $args );
 
-			// Store for a week, then push data again.
-			set_transient( 'yoast_tracking_cache', true, 60 * 60 * 24 * 7 );
+			wp_remote_post( 'https://tracking.yoast.com/', $args );
 
 		}
 	} /* End of class */
@@ -169,19 +173,66 @@ if ( ! class_exists( 'Yoast_Tracking' ) ) {
  * Adds tracking parameters for WP SEO settings. Outside of the main class as the class could also be in use in other plugins.
  *
  * @param array $options
+ *
  * @return array
  */
 function wpseo_tracking_additions( $options ) {
+	if ( function_exists( 'curl_version' ) ) {
+		$curl = curl_version();
+	} else {
+		$curl = null;
+	}
+
+
 	$opt = WPSEO_Options::get_all();
 
 	$options['wpseo'] = array(
-		'xml_sitemaps'        => ( $opt['enablexmlsitemap'] === true ) ? 1 : 0,
-		'force_rewrite'       => ( $opt['forcerewritetitle'] === true ) ? 1 : 0,
-		'opengraph'           => ( $opt['opengraph'] === true ) ? 1 : 0,
-		'twitter'             => ( $opt['twitter'] === true ) ? 1 : 0,
-		'strip_category_base' => ( $opt['stripcategorybase'] === true ) ? 1 : 0,
-		'on_front'            => get_option( 'show_on_front' ),
+		'xml_sitemaps'                => ( $opt['enablexmlsitemap'] === true ) ? 1 : 0,
+		'force_rewrite'               => ( $opt['forcerewritetitle'] === true ) ? 1 : 0,
+		'opengraph'                   => ( $opt['opengraph'] === true ) ? 1 : 0,
+		'twitter'                     => ( $opt['twitter'] === true ) ? 1 : 0,
+		'strip_category_base'         => ( $opt['stripcategorybase'] === true ) ? 1 : 0,
+		'on_front'                    => get_option( 'show_on_front' ),
+		'wmt_alexa'                   => ( ! empty( $opt['alexaverify'] ) ) ? 1 : 0,
+		'wmt_bing'                    => ( ! empty( $opt['msverify'] ) ) ? 1 : 0,
+		'wmt_google'                  => ( ! empty( $opt['googleverify'] ) ) ? 1 : 0,
+		'wmt_pinterest'               => ( ! empty( $opt['pinterestverify'] ) ) ? 1 : 0,
+		'wmt_yandex'                  => ( ! empty( $opt['yandexverify'] ) ) ? 1 : 0,
+		'permalinks_clean'            => ( $opt['cleanpermalinks'] == 1 ) ? 1 : 0,
+
+		'site_db_charset'             => DB_CHARSET,
+
+		'webserver_apache'            => wpseo_is_apache() ? 1 : 0,
+		'webserver_apache_version'    => function_exists( 'apache_get_version' ) ? apache_get_version() : 0,
+		'webserver_nginx'             => wpseo_is_nginx() ? 1 : 0,
+
+		'webserver_server_software'   => $_SERVER['SERVER_SOFTWARE'],
+		'webserver_gateway_interface' => $_SERVER['GATEWAY_INTERFACE'],
+		'webserver_server_protocol'   => $_SERVER['SERVER_PROTOCOL'],
+
+		'php_version'                 => phpversion(),
+
+		'php_max_execution_time'      => ini_get( 'max_execution_time' ),
+		'php_memory_limit'            => ini_get( 'memory_limit' ),
+		'php_open_basedir'            => ini_get( 'open_basedir' ),
+
+		'php_bcmath_enabled'          => extension_loaded( 'bcmath' ) ? 1 : 0,
+		'php_ctype_enabled'           => extension_loaded( 'ctype' ) ? 1 : 0,
+		'php_curl_enabled'            => extension_loaded( 'curl' ) ? 1 : 0,
+		'php_curl_version_a'          => phpversion( 'curl' ),
+		'php_curl'                    => ( ! is_null( $curl ) ) ? $curl['version'] : 0,
+		'php_dom_enabled'             => extension_loaded( 'dom' ) ? 1 : 0,
+		'php_dom_version'             => phpversion( 'dom' ),
+		'php_filter_enabled'          => extension_loaded( 'filter' ) ? 1 : 0,
+		'php_mbstring_enabled'        => extension_loaded( 'mbstring' ) ? 1 : 0,
+		'php_mbstring_version'        => phpversion( 'mbstring' ),
+		'php_pcre_enabled'            => extension_loaded( 'pcre' ) ? 1 : 0,
+		'php_pcre_version'            => phpversion( 'pcre' ),
+		'php_pcre_with_utf8_a'        => @preg_match( '/^.{1}$/u','ñ', $UTF8_ar ),
+		'php_pcre_with_utf8_b'        => defined( 'PREG_BAD_UTF8_ERROR' ),
+		'php_spl_enabled'             => extension_loaded( 'spl' ) ? 1 : 0,
 	);
+
 	return $options;
 }
 

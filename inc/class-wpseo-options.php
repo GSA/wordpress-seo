@@ -65,8 +65,8 @@ if ( ! class_exists( 'WPSEO_Option' ) ) {
 	 *    a method by defining it in the concrete class.
 	 *
 	 *
-	 * @todo       - [JRF => testers] double check that validation will not cause errors when called from upgrade routine
-	 * (some of the WP functions may not yet be available)
+	 * @todo       - [JRF => testers] double check that validation will not cause errors when called
+	 *               from upgrade routine (some of the WP functions may not yet be available)
 	 */
 	abstract class WPSEO_Option {
 
@@ -367,11 +367,42 @@ if ( ! class_exists( 'WPSEO_Option' ) ) {
 		abstract protected function validate_option( $dirty, $clean, $old );
 
 
-		/* *********** METHODS for UPGRADING the option *********** */
+		/* *********** METHODS for ADDING/UPGRADING the option *********** */
+		
+		/**
+		 * Retrieve the real old value (unmerged with defaults)
+		 *
+		 * @return array|bool the original option value (which can be false if the option doesn't exist)
+		 */
+		protected function get_original_option() {
+			$this->remove_default_filters();
+			$this->remove_option_filters();
+			$option_value = get_option( $this->option_name ); // = (unvalidated) array, NOT merged with defaults
+			$this->add_option_filters();
+			$this->add_default_filters();
+			
+			return $option_value;
+		}
+		
+		/**
+		 * Add the option if it doesn't exist for some strange reason
+		 *
+		 * @uses WPSEO_Option::get_original_option()
+		 *
+		 * @return void
+		 */
+		public function maybe_add_option() {
+			if ( $this->get_original_option() === false ) {
+				update_option( $this->option_name, $this->get_defaults() );
+			}
+		}
+
 
 		/**
 		 * Retrieve the real old value (unmerged with defaults), clean and re-save the option
-		 * @uses import()
+		 *
+		 * @uses WPSEO_Option::get_original_option()
+		 * @uses WPSEO_Option::import()
 		 *
 		 * @param  string $current_version (optional) Version from which to upgrade, if not set,
 		 *                                 version specific upgrades will be disregarded
@@ -379,13 +410,7 @@ if ( ! class_exists( 'WPSEO_Option' ) ) {
 		 * @return void
 		 */
 		public function clean( $current_version = null ) {
-
-			$this->remove_default_filters();
-			$this->remove_option_filters();
-			$option_value = get_option( $this->option_name ); // = (unvalidated) array, NOT merged with defaults
-			$this->add_option_filters();
-			$this->add_default_filters();
-
+			$option_value = $this->get_original_option();
 			$this->import( $option_value, $current_version );
 		}
 
@@ -449,7 +474,7 @@ if ( ! class_exists( 'WPSEO_Option' ) ) {
 
 			$defaults = $this->get_defaults();
 
-			if ( ! isset( $options ) || $options === false ) {
+			if ( ! isset( $options ) || $options === false || $options === array() ) {
 				return $defaults;
 			}
 
@@ -571,7 +596,6 @@ if ( ! class_exists( 'WPSEO_Option' ) ) {
 			 * @param string $filtered The sanitized string.
 			 * @param string $str      The string prior to being sanitized.
 			 */
-
 			return apply_filters( 'sanitize_text_field', $filtered, $value );
 		}
 
@@ -836,11 +860,11 @@ if ( ! class_exists( 'WPSEO_Option_Wpseo' ) ) {
 			/* Check if the yoast tracking cron job needs adding/removing on successfull option add/update */
 			add_action( 'add_option_' . $this->option_name, array(
 					'WPSEO_Options',
-					'schedule_yoast_tracking'
+					'schedule_yoast_tracking',
 				), 15, 2 );
 			add_action( 'update_option_' . $this->option_name, array(
 					'WPSEO_Options',
-					'schedule_yoast_tracking'
+					'schedule_yoast_tracking',
 				), 15, 2 );
 		}
 
@@ -1068,13 +1092,13 @@ if ( ! class_exists( 'WPSEO_Option_Wpseo' ) ) {
 				'ignore_page_comments',
 				'ignore_permalink',
 				'ignore_tour',
-				'tracking_popup_done',
 				//'disableadvanced_meta', => not needed as is 'on' which will auto-convert to true
+				'tracking_popup_done',
 			);
 			foreach ( $value_change as $key ) {
 				if ( isset( $option_value[ $key ] ) && in_array( $option_value[ $key ], array(
 							'ignore',
-							'done'
+							'done',
 						), true )
 				) {
 					$option_value[ $key ] = true;
@@ -1567,7 +1591,7 @@ if ( ! class_exists( 'WPSEO_Option_Titles' ) ) {
 			// Double-run this function to ensure renaming of the taxonomy options will work
 			if ( ! isset( $original ) && has_action( 'wpseo_double_clean_titles', array(
 						$this,
-						'clean'
+						'clean',
 					) ) === false
 			) {
 				add_action( 'wpseo_double_clean_titles', array( $this, 'clean' ) );
@@ -1667,8 +1691,8 @@ if ( ! class_exists( 'WPSEO_Option_Titles' ) ) {
 							if (
 								( isset( $original[ $old_prefix . $tax ] ) && ! isset( $original[ $new_prefix . $tax ] ) )
 								&& ( ! isset( $option_value[ $new_prefix . $tax ] )
-								     || ( isset( $option_value[ $new_prefix . $tax ] )
-								          && $option_value[ $new_prefix . $tax ] === $defaults[ $new_prefix . $tax ] ) )
+									|| ( isset( $option_value[ $new_prefix . $tax ] )
+										&& $option_value[ $new_prefix . $tax ] === $defaults[ $new_prefix . $tax ] ) )
 							) {
 								$option_value[ $new_prefix . $tax ] = $original[ $old_prefix . $tax ];
 
@@ -2588,7 +2612,7 @@ if ( ! class_exists( 'WPSEO_Option_Social' ) ) {
 											'http',
 											'https',
 											'ftp',
-											'ftps'
+											'ftps',
 										) );
 									add_settings_error(
 										$this->group_name, // slug title of the setting
@@ -2830,7 +2854,7 @@ if ( ! class_exists( 'WPSEO_Option_MS' ) ) {
 		 * @return void
 		 */
 		public function register_setting() {
-			if ( ( function_exists( 'is_multisite' ) && is_multisite() ) && WPSEO_Options::grant_access() ) {
+			if ( is_multisite() && WPSEO_Options::grant_access() ) {
 				register_setting( $this->group_name, $this->option_name );
 			}
 		}
@@ -3060,7 +3084,7 @@ if ( ! class_exists( 'WPSEO_Taxonomy_Meta' ) ) {
 				return $defaults;
 			}
 
-			/**
+			/*
 			@internal Adding the defaults to all taxonomy terms each time the option is retrieved
 			will be quite inefficient if there are a lot of taxonomy terms
 			As long as taxonomy_meta is only retrieved via methods in this class, we shouldn't need this
@@ -3421,7 +3445,7 @@ if ( ! class_exists( 'WPSEO_Options' ) ) {
 		 * @return boolean
 		 */
 		public static function grant_access() {
-			if ( ! function_exists( 'is_multisite' ) || ! is_multisite() ) {
+			if ( ! is_multisite() ) {
 				return true;
 			}
 
@@ -3568,6 +3592,19 @@ if ( ! class_exists( 'WPSEO_Options' ) ) {
 				delete_option( 'wpseo_indexation' );
 			}
 		}
+		
+		
+		/**
+		 * Check that all options exist in the database and add any which don't
+		 *
+		 * @return  void
+		 */
+		public static function ensure_options_exist() {
+			foreach ( self::$option_instances as $instance ) {
+				$instance->maybe_add_option();
+			}
+		}
+
 
 		/**
 		 * Correct the inadvertent removal of the fallback to default values from the breadcrumbs
@@ -3638,7 +3675,7 @@ if ( ! class_exists( 'WPSEO_Options' ) ) {
 		public static function set_multisite_defaults() {
 			$option = get_option( 'wpseo' );
 
-			if ( function_exists( 'is_multisite' ) && is_multisite() && $option['ms_defaults_set'] === false ) {
+			if ( is_multisite() && $option['ms_defaults_set'] === false ) {
 				$current_site = get_current_site();
 				self::reset_ms_blog( $current_site->id );
 
