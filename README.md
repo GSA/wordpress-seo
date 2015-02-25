@@ -1,7 +1,16 @@
+GSA changes
+----------
+
+  removed author website promo from https://www.data.gov/sitemap.xml
+
+
+
 WordPress SEO by Yoast
 ======================
 
 [![Build Status](https://api.travis-ci.org/Yoast/wordpress-seo.png?branch=master)](https://travis-ci.org/Yoast/wordpress-seo)
+[![Stable Version](https://poser.pugx.org/yoast/wordpress-seo/v/stable.svg)](https://packagist.org/packages/yoast/wordpress-seo)
+[![License](https://poser.pugx.org/yoast/wordpress-seo/license.svg)](https://packagist.org/packages/yoast/wordpress-seo)
 
 Welcome to the WordPress SEO Github repository
 ----------------------------------------------

@@ -1,6 +1,6 @@
 <?php
 
-if( ! class_exists( "Yoast_Theme_Update_Manager", false ) ) {
+if( class_exists( 'Yoast_Update_Manager' ) && ! class_exists( "Yoast_Theme_Update_Manager", false ) ) {
 
 	class Yoast_Theme_Update_Manager extends Yoast_Update_Manager {
 

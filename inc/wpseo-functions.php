@@ -23,9 +23,11 @@ function wpseo_do_upgrade() {
 
 	$option_wpseo = get_option( 'wpseo' );
 
-	if ( $option_wpseo['version'] === '' || version_compare( $option_wpseo['version'], '1.2', '<' ) ) {
-		add_action( 'init', 'wpseo_title_test' );
-	}
+	WPSEO_Options::maybe_set_multisite_defaults( false );
+
+//	if ( $option_wpseo['version'] === '' || version_compare( $option_wpseo['version'], '1.2', '<' ) ) {
+//		add_action( 'init', 'wpseo_title_test' );
+//	}
 
 	if ( $option_wpseo['version'] === '' || version_compare( $option_wpseo['version'], '1.4.13', '<' ) ) {
 		// Run description test once theme has loaded
@@ -60,12 +62,16 @@ function wpseo_do_upgrade() {
 		WPSEO_Options::clean_up( 'wpseo_taxonomy_meta', $option_wpseo['version'] );
 	}
 
+	/* Clean up stray wpseo_ms options from the options table, option should only exist in the sitemeta table */
+	delete_option( 'wpseo_ms' );
+
+
 	// Make sure version nr gets updated for any version without specific upgrades
 	$option_wpseo = get_option( 'wpseo' ); // re-get to make sure we have the latest version
 	if ( version_compare( $option_wpseo['version'], WPSEO_VERSION, '<' ) ) {
 		update_option( 'wpseo', $option_wpseo );
 	}
-	
+
 	// Make sure all our options always exist - issue #1245
 	WPSEO_Options::ensure_options_exist();
 }
@@ -116,7 +122,6 @@ function wpseo_add_capabilities() {
 		'administrator',
 		'editor',
 		'author',
-		'contributor',
 	);
 
 	$roles = apply_filters( 'wpseo_bulk_edit_roles', $roles );
@@ -132,6 +137,8 @@ function wpseo_add_capabilities() {
 
 /**
  * Remove the bulk edit capability from the proper default roles.
+ *
+ * Contributor is still removed for legacy reasons.
  */
 function wpseo_remove_capabilities() {
 	$roles = array(
@@ -156,7 +163,7 @@ function wpseo_remove_capabilities() {
  * Replace `%%variable_placeholders%%` with their real value based on the current requested page/post/cpt
  *
  * @param string $string the string to replace the variables in.
- * @param array  $args   the object some of the replacement values might come from, could be a post, taxonomy or term.
+ * @param object $args   the object some of the replacement values might come from, could be a post, taxonomy or term.
  * @param array  $omit   variables that should not be replaced by this function.
  * @return string
  */
@@ -199,7 +206,7 @@ function wpseo_replace_vars( $string, $args, $omit = array() ) {
  * @since 1.5.4
  *
  * @param  string   $var               The name of the variable to replace, i.e. '%%var%%'
- *                                      - the surrounding %% are optional
+ *                                      - the surrounding %% are optional, name can only contain [A-Za-z0-9_-]
  * @param  mixed    $replace_function  Function or method to call to retrieve the replacement value for the variable
  *					                   Uses the same format as add_filter/add_action function parameter and
  *					                   should *return* the replacement value. DON'T echo it!
@@ -228,13 +235,35 @@ function wpseo_xml_redirect_sitemap() {
 	global $wp_query;
 
 	$current_url  = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] == 'on' ) ? 'https://' : 'http://';
-	$current_url .= $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
+	$current_url .= sanitize_text_field( $_SERVER['SERVER_NAME'] ) . sanitize_text_field( $_SERVER['REQUEST_URI'] );
 
 	// must be 'sitemap.xml' and must be 404
 	if ( home_url( '/sitemap.xml' ) == $current_url && $wp_query->is_404 ) {
-		wp_redirect( home_url( '/sitemap_index.xml' ) );
+		wp_redirect( home_url( '/sitemap_index.xml' ), 301 );
 		exit;
 	}
+}
+
+/**
+ * Create base URL for the sitemaps and applies filters
+ *
+ * @since 1.5.7
+ *
+ * @param string $page page to append to the base URL
+ *
+ * @return string base URL (incl page) for the sitemaps
+ */
+function wpseo_xml_sitemaps_base_url( $page ) {
+	$base = $GLOBALS['wp_rewrite']->using_index_permalinks() ? 'index.php/' : '/';
+
+	/**
+	 * Filter: 'wpseo_sitemaps_base_url' - Allow developer to change the base URL of the sitemaps
+	 *
+	 * @api string $base The string that should be added to home_url() to make the full base URL.
+	 */
+	$base = apply_filters( 'wpseo_sitemaps_base_url', $base );
+
+	return home_url( $base . $page );
 }
 
 /**
@@ -273,14 +302,13 @@ function wpseo_ping_search_engines( $sitemapurl = null ) {
 	}
 
 	$options = get_option( 'wpseo_xml' );
-	$base    = $GLOBALS['wp_rewrite']->using_index_permalinks() ? 'index.php/' : '';
 	if ( $sitemapurl == null ) {
-		$sitemapurl = urlencode( home_url( $base . 'sitemap_index.xml' ) );
+		$sitemapurl = urlencode( wpseo_xml_sitemaps_base_url( 'sitemap_index.xml' ) );
 	}
 
 	// Always ping Google and Bing, optionally ping Ask and Yahoo!
 	wp_remote_get( 'http://www.google.com/webmasters/tools/ping?sitemap=' . $sitemapurl );
-	wp_remote_get( 'http://www.bing.com/webmaster/ping.aspx?sitemap=' . $sitemapurl );
+	wp_remote_get( 'http://www.bing.com/ping?sitemap=' . $sitemapurl );
 
 	if ( $options['xml_ping_yahoo'] === true ) {
 		wp_remote_get( 'http://search.yahooapis.com/SiteExplorerService/V1/updateNotification?appid=3usdTDLV34HbjQpIBuzMM1UkECFl5KDN7fogidABihmHBfqaebDuZk1vpLDR64I-&url=' . $sitemapurl );
@@ -298,7 +326,7 @@ function wpseo_store_tracking_response() {
 		die();
 	}
 
-	$options = get_option( 'wpseo' );
+	$options                        = get_option( 'wpseo' );
 	$options['tracking_popup_done'] = true;
 
 	if ( $_POST['allow_tracking'] == 'yes' ) {
@@ -331,19 +359,19 @@ function wpseo_wpml_config( $config ) {
 				$translate_cp = array_keys( $sitepress->get_translatable_documents() );
 				if ( is_array( $translate_cp ) && $translate_cp !== array() ) {
 					foreach ( $translate_cp as $post_type ) {
-						$admin_texts[$k]['key'][]['attr']['name'] = 'title-'. $post_type;
-						$admin_texts[$k]['key'][]['attr']['name'] = 'metadesc-'. $post_type;
-						$admin_texts[$k]['key'][]['attr']['name'] = 'metakey-'. $post_type;
-						$admin_texts[$k]['key'][]['attr']['name'] = 'title-ptarchive-'. $post_type;
-						$admin_texts[$k]['key'][]['attr']['name'] = 'metadesc-ptarchive-'. $post_type;
-						$admin_texts[$k]['key'][]['attr']['name'] = 'metakey-ptarchive-'. $post_type;
+						$admin_texts[ $k ]['key'][]['attr']['name'] = 'title-'. $post_type;
+						$admin_texts[ $k ]['key'][]['attr']['name'] = 'metadesc-'. $post_type;
+						$admin_texts[ $k ]['key'][]['attr']['name'] = 'metakey-'. $post_type;
+						$admin_texts[ $k ]['key'][]['attr']['name'] = 'title-ptarchive-'. $post_type;
+						$admin_texts[ $k ]['key'][]['attr']['name'] = 'metadesc-ptarchive-'. $post_type;
+						$admin_texts[ $k ]['key'][]['attr']['name'] = 'metakey-ptarchive-'. $post_type;
 
 						$translate_tax = $sitepress->get_translatable_taxonomies( false, $post_type );
 						if ( is_array( $translate_tax ) && $translate_tax !== array() ) {
 							foreach ( $translate_tax as $taxonomy ) {
-								$admin_texts[$k]['key'][]['attr']['name'] = 'title-tax-'. $taxonomy;
-								$admin_texts[$k]['key'][]['attr']['name'] = 'metadesc-tax-'. $taxonomy;
-								$admin_texts[$k]['key'][]['attr']['name'] = 'metakey-tax-'. $taxonomy;
+								$admin_texts[ $k ]['key'][]['attr']['name'] = 'title-tax-'. $taxonomy;
+								$admin_texts[ $k ]['key'][]['attr']['name'] = 'metadesc-tax-'. $taxonomy;
+								$admin_texts[ $k ]['key'][]['attr']['name'] = 'metakey-tax-'. $taxonomy;
 							}
 						}
 					}
@@ -357,307 +385,6 @@ function wpseo_wpml_config( $config ) {
 	return $config;
 }
 add_filter( 'icl_wpml_config_array', 'wpseo_wpml_config' );
-
-
-/**
- * Generate an HTML sitemap
- *
- * @param array $atts The attributes passed to the shortcode.
- *
- * @return string
- */
-function wpseo_sitemap_handler( $atts ) {
-
-	$atts = shortcode_atts(
-		array(
-			'authors'  => true,
-			'pages'    => true,
-			'posts'    => true,
-			'archives' => true,
-		),
-		$atts
-	);
-
-	$display_authors  = ( $atts['authors'] === 'no' ) ? false : true;
-	$display_pages    = ( $atts['pages'] === 'no' ) ? false : true;
-	$display_posts    = ( $atts['posts'] === 'no' ) ? false : true;
-	$display_archives = ( $atts['archives'] === 'no' ) ? false : true;
-
-	$options = WPSEO_Options::get_all();
-
-	/* Delete the transient if any of these are no
-	   @todo [JRF => whomever] have a good look at this, as this would basically mean that if any of these
-	   are no, we'd never use the transient and would always build again from scratch which is very inefficient
-	   Suggestion: have several different transients based on the variables chosen
-	*/
-	if ( $display_authors === false || $display_pages === false || $display_posts === false ) {
-		delete_transient( 'html-sitemap' );
-	}
-
-	// Get any existing copy of our transient data
-	if ( false !== ( $output = get_transient( 'html-sitemap' ) ) ) {
-		// $output .= 'CACHE'; // debug
-		// return $output;
-	}
-
-	$output = '';
-
-	// create author list
-	if ( $display_authors ) {
-		// use echo => false b/c shortcode format screws up
-		$author_list = wp_list_authors(
-			array(
-				'exclude_admin' => false,
-				'echo'          => false,
-			)
-		);
-
-		if ( $author_list !== '' ) {
-			$output .= '
-				<h2 id="authors">' . __( 'Authors', 'wordpress-seo' ) . '</h2>
-				<ul>
-					' . $author_list . '
-				</ul>';
-		}
-	}
-
-	// create page list
-	if ( $display_pages ) {
-		// Some query magic to retrieve all pages that should be excluded, while preventing noindex pages that are set to
-		// "always" include in HTML sitemap from being excluded.
-		// @todo [JRF => whomever] check query efficiency using EXPLAIN
-
-		$exclude_query  = "SELECT DISTINCT( post_id ) FROM {$GLOBALS['wpdb']->postmeta}
-			WHERE ( ( meta_key = '" . WPSEO_Meta::$meta_prefix . "sitemap-html-include' AND meta_value = 'never' )
-			  OR ( meta_key = '" . WPSEO_Meta::$meta_prefix . "meta-robots-noindex' AND meta_value = '1' ) )
-			AND post_id NOT IN
-				( SELECT pm2.post_id FROM {$GLOBALS['wpdb']->postmeta} pm2
-						WHERE pm2.meta_key = '" . WPSEO_Meta::$meta_prefix . "sitemap-html-include' AND pm2.meta_value = 'always')
-			ORDER BY post_id ASC";
-		$excluded_pages = $GLOBALS['wpdb']->get_results( $exclude_query );
-
-		$exclude = array();
-		if ( is_array( $excluded_pages ) && $excluded_pages !== array() ) {
-			foreach ( $excluded_pages as $page ) {
-				$exclude[] = $page->post_id;
-			}
-		}
-		unset( $excluded_pages, $page );
-
-		/**
-		 * This filter allows excluding more pages should you wish to from the HTML sitemap.
-		 */
-		$exclude = implode( ',', apply_filters( 'wpseo_html_sitemap_page_exclude', $exclude ) );
-
-		$page_list = wp_list_pages(
-			array(
-				'exclude'  => $exclude,
-				'title_li' => '',
-				'echo'     => false,
-			)
-		);
-
-		if ( $page_list !== '' ) {
-			$output .= '
-				<h2 id="pages">' . __( 'Pages', 'wordpress-seo' ) . '</h2>
-				<ul>
-					' . $page_list . '
-				</ul>';
-		}
-	}
-
-	// create post list
-	if ( $display_posts ) {
-		// Add categories you'd like to exclude in the exclude here
-		// possibly have this controlled by shortcode params
-		$cats_map = '';
-		$cats     = get_categories( 'exclude=' );
-		if ( is_array( $cats ) && $cats !== array() ) {
-			foreach ( $cats as $cat ) {
-				$args = array(
-					'post_type'      => 'post',
-					'post_status'    => 'publish',
-					'posts_per_page' => -1,
-					'cat'            => $cat->cat_ID,
-
-					'meta_query'     => array(
-						'relation' => 'OR',
-						// include if this key doesn't exists
-						array(
-							'key'     => WPSEO_Meta::$meta_prefix . 'meta-robots-noindex',
-							'value'   => 'needs-a-value-anyway', // This is ignored, but is necessary...
-							'compare' => 'NOT EXISTS',
-						),
-						// OR if key does exists include if it is not 1
-						array(
-							'key'     => WPSEO_Meta::$meta_prefix . 'meta-robots-noindex',
-							'value'   => '1',
-							'compare' => '!=',
-						),
-						// OR this key overrides it
-						array(
-							'key'     => WPSEO_Meta::$meta_prefix . 'sitemap-html-include',
-							'value'   => 'always',
-							'compare' => '=',
-						),
-					),
-				);
-
-				$posts = get_posts( $args );
-
-				if ( is_array( $posts ) && $posts !== array() ) {
-					$posts_in_cat = '';
-
-					foreach ( $posts as $post ) {
-						$category = get_the_category( $post->ID );
-
-						// Only display a post link once, even if it's in multiple categories
-						if ( $category[0]->cat_ID == $cat->cat_ID ) {
-							$posts_in_cat .= '
-							<li><a href="' . esc_url( get_permalink( $post->ID ) ) . '">' . get_the_title( $post->ID ) . '</a></li>';
-						}
-					}
-
-					if ( $posts_in_cat !== '' ) {
-						$cats_map .= '
-					<li>
-						<h3>' . $cat->cat_name . '</h3>
-						<ul>
-							' . $posts_in_cat . '
-						</ul>
-					</li>';
-					}
-				}
-				unset( $posts, $post, $posts_in_cat, $category );
-			}
-		}
-
-		if ( $cats_map !== '' ) {
-			$output .= '
-				<h2 id="posts">' . __( 'Posts', 'wordpress-seo' ) . '</h2>
-				<ul>
-					' . $cats_map . '
-				</ul>';
-		}
-		unset( $cats_map, $cats, $cat, $args );
-	}
-
-
-	// get all public non-builtin post types
-	$args       = array(
-		'public'   => true,
-		'_builtin' => false,
-	);
-	$post_types = get_post_types( $args, 'object' );
-
-	if ( is_array( $post_types ) && $post_types !== array() ) {
-
-		// create an noindex array of post types and taxonomies
-		$noindex = array();
-		foreach ( $options as $key => $value ) {
-			if ( strpos( $key, 'noindex-' ) === 0 && $value === true ) {
-				$noindex[] = $key;
-			}
-		}
-
-		$archives = '';
-
-		// create custom post type list
-		foreach ( $post_types as $post_type ) {
-			if ( is_object( $post_type ) && ! in_array( 'noindex-' . $post_type->name, $noindex ) ) {
-				$output .= '
-				<h2 id="' . $post_type->name . '">' . esc_html( $post_type->label ) . '</h2>
-				<ul>
-					' . create_type_sitemap_template( $post_type ) . '
-				</ul>';
-			}
-
-			// create archives list
-			if ( $display_archives ) {
-				if ( is_object( $post_type ) && $post_type->has_archive && ! in_array( 'noindex-ptarchive-' . $post_type->name, $noindex ) ) {
-					$archives .= '<a href="' . esc_url( get_post_type_archive_link( $post_type->name ) ) . '">' . esc_html( $post_type->labels->name ) . '</a>';
-
-					$archives .= create_type_sitemap_template( $post_type );
-				}
-			}
-		}
-
-		if ( $archives !== '' ) {
-			$output .= '
-			<h2 id="archives">' . __( 'Archives', 'wordpress-seo' ) . '</h2>
-			<ul>
-				' . $archives .'
-			</ul>';
-		}
-	}
-
-	set_transient( 'html-sitemap', $output, 60 );
-	return $output;
-}
-
-add_shortcode( 'wpseo_sitemap', 'wpseo_sitemap_handler' );
-
-
-/**
- * @param $post_type
- *
- * @return string
- */
-function create_type_sitemap_template( $post_type ) {
-	// $output = '<h2 id="' . $post_type->name . '">' . __( $post_type->label, 'wordpress-seo' ) . '</h2><ul>';
-
-	// Get all registered taxonomy of this post type
-	$taxs   = get_object_taxonomies( $post_type->name, 'object' );
-	$output = '';
-
-	if ( is_array( $taxs ) && $taxs !== array() ) {
-
-		// Build the taxonomy tree
-		$walker = new Sitemap_Walker;
-		foreach ( $taxs as $key => $tax ) {
-			if ( $tax->public !== 1 ) {
-				continue;
-			}
-
-			$args     = array(
-				'post_type' => $post_type->name,
-				'tax_query' => array(
-					array(
-						'taxonomy' => $key,
-						'field'    => 'id',
-						'terms'    => -1,
-						'operator' => 'NOT',
-					),
-				),
-			);
-			$query    = new WP_Query( $args );
-			$title_li = $query->have_posts() ? $tax->labels->name : '';
-
-			$cats_list = wp_list_categories(
-				array(
-					'title_li'         => $title_li,
-					'echo'             => false,
-					'taxonomy'         => $key,
-					'show_option_none' => '',
-					// 'hierarchical' => 0, // uncomment this for a flat list
-
-					'walker'           => $walker,
-					'post_type'        => $post_type->name, // arg used by the Walker class
-				)
-			);
-
-			if ( $cats_list !== '' ) {
-				$output .= $cats_list;
-			}
-		}
-
-		if ( $output !== '' ) {
-			$output .= '<br />';
-		}
-	}
-	return $output;
-}
-
 
 if ( ! function_exists( 'wpseo_calc' ) ) {
 	/**
@@ -866,6 +593,46 @@ function wpseo_invalidate_sitemap_cache_on_save_post( $post_id ) {
 
 add_action( 'save_post', 'wpseo_invalidate_sitemap_cache_on_save_post' );
 
+/**
+ * List all the available user roles
+ *
+ * @return array $roles
+ */
+function wpseo_get_roles() {
+	global $wp_roles;
+
+	if ( ! isset( $wp_roles ) ) {
+		$wp_roles = new WP_Roles();
+	}
+
+	$roles = $wp_roles->get_names();
+
+	return $roles;
+}
+
+/**
+ * Check whether a url is relative
+ *
+ * @param string $url
+ *
+ * @return bool
+ */
+function wpseo_is_url_relative( $url ) {
+	return ( strpos( $url, 'http' ) !== 0 && strpos( $url, '//' ) !== 0 );
+}
+
+/**
+ * Standardize whitespace in a string
+ *
+ * Replace line breaks, carriage returns, tabs with a space, then remove double spaces.
+ *
+ * @param string $string
+ *
+ * @return string
+ */
+function wpseo_standardize_whitespace( $string ) {
+	return trim( str_replace( '  ', ' ', str_replace( array( "\t", "\n", "\r", "\f" ), ' ', $string ) ) );
+}
 
 /**
  * Emulate PHP native ctype_digit() function for when the ctype extension would be disabled *sigh*
@@ -884,7 +651,6 @@ if ( ! extension_loaded( 'ctype' ) || ! function_exists( 'ctype_digit' ) ) {
 		return $return;
 	}
 }
-
 
 
 /********************** DEPRECATED FUNCTIONS **********************/
@@ -1016,3 +782,21 @@ function wpseo_get_terms( $id, $taxonomy, $return_single = false ) {
 	$replacer = new WPSEO_Replace_Vars;
 	return $replacer->get_terms( $id, $taxonomy, $return_single );
 }
+
+/**
+ * Generate an HTML sitemap
+ *
+ * @deprecated 1.5.5.4
+ * @deprecated use plugin WordPress SEO Premium
+ * @see WordPress SEO Premium
+ *
+ * @param array $atts The attributes passed to the shortcode.
+ *
+ * @return string
+ */
+function wpseo_sitemap_handler( $atts ) {
+	_deprecated_function( __FUNCTION__, 'WPSEO 1.5.5.4', 'Functionality has been discontinued after being in beta, it\'ll be available in the WordPress SEO Premium plugin soon.' );
+	return '';
+}
+
+add_shortcode( 'wpseo_sitemap', 'wpseo_sitemap_handler' );

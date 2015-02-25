@@ -254,6 +254,17 @@ class WPSEO_Frontend_Test extends WPSEO_UnitTestCase {
 	}
 
 	/**
+	 * @covers WPSEO_Frontend::internal_search_json_ld
+	 */
+	public function test_json_ld() {
+		$this->go_to_home();
+
+		$home_url = trailingslashit( home_url() );
+		$search_url = $home_url . '?s={search_term}';
+		$this->run_json_ld_test( '<script type="application/ld+json">{ "@context": "http://schema.org", "@type": "WebSite", "url": "' . $home_url . '", "potentialAction": { "@type": "SearchAction", "target": "' . $search_url .'", "query-input": "required name=search_term" } }</script>' . "\n" );
+	}
+
+	/**
 	 * @covers WPSEO_Frontend::head
 	 */
 	public function test_head() {
@@ -299,10 +310,16 @@ class WPSEO_Frontend_Test extends WPSEO_UnitTestCase {
 
 		// test 'paged' query var
 		set_query_var( 'paged', 2 );
-		$expected = 'noindex,follow';
+		$expected = '';
 		$this->assertEquals( $expected, self::$class_instance->robots() );
 
-		// clean-up
+		// test 'paged' query var (2)
+		$expected                                                = 'noindex,follow';
+		self::$class_instance->options['noindex-subpages-wpseo'] = true;
+		$this->assertEquals( $expected, self::$class_instance->robots() );
+
+		// clean-up		
+		self::$class_instance->options['noindex-subpages-wpseo'] = false;
 		set_query_var( 'paged', 0 );
 
 		// create and go to post
@@ -508,45 +525,6 @@ class WPSEO_Frontend_Test extends WPSEO_UnitTestCase {
 	}
 
 	/**
-	 * @covers WPSEO_Frontend::author
-	 */
-	public function test_author() {
-
-		$this->assertFalse( self::$class_instance->author() );
-
-		// create and go to post
-		$author_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
-		$post_id = $this->factory->post->create( array( 'post_author' => $author_id ) );
-		$this->go_to( get_permalink( $post_id ) );
-
-		// post type default not set
-		$this->assertFalse( self::$class_instance->author() );
-
-		// post type default set but author meta not set
-		self::$class_instance->options['noauthorship-post'] = false;
-		$this->assertFalse( self::$class_instance->author() );
-
-		// post author meta, but not set
-		WPSEO_Meta::set_value( 'authorship', 'always', $post_id );
-		$this->assertFalse( self::$class_instance->author() );
-
-		// set author meta
-		$gplus = 'https://plus.google.com/+JoostdeValk';
-		add_user_meta( $author_id, 'googleplus', $gplus );
-		$expected = '<link rel="author" href="' . esc_url( $gplus ) . '"/>' . "\n";
-
-		// post author meta and user meta set
-		$this->assertTrue( self::$class_instance->author() );
-		$this->expectOutput( $expected );
-
-		// post type default and user meta set
-		WPSEO_Meta::set_value( 'authorship', '-', $post_id );
-		$this->assertTrue( self::$class_instance->author() );
-		$this->expectOutput( $expected );
-
-	}
-
-	/**
 	 * @covers WPSEO_Frontend::metakeywords
 	 */
 	public function test_metakeywords() {
@@ -742,7 +720,7 @@ class WPSEO_Frontend_Test extends WPSEO_UnitTestCase {
 
 		// generate expected output
 		$post           = get_post( $post_id );
-		$author_link    = '<a rel="nofollow" rel="author" href="' . esc_url( get_author_posts_url( $post->post_author ) ) . '">' . get_the_author() . '</a>';
+		$author_link    = '<a rel="nofollow" href="' . esc_url( get_author_posts_url( $post->post_author ) ) . '">' . get_the_author() . '</a>';
 		$post_link      = '<a rel="nofollow" href="' . esc_url( get_permalink() ) . '">' . get_the_title() . '</a>';
 		$blog_link      = '<a rel="nofollow" href="' . esc_url( get_bloginfo( 'url' ) ) . '">' . get_bloginfo( 'name' ) . '</a>';
 		$blog_desc_link = '<a rel="nofollow" href="' . esc_url( get_bloginfo( 'url' ) ) . '">' . get_bloginfo( 'name' ) . ' - ' . get_bloginfo( 'description' ) . '</a>';
@@ -805,20 +783,21 @@ class WPSEO_Frontend_Test extends WPSEO_UnitTestCase {
 	 * @covers WPSEO_Frontend::embed_rss
 	 */
 	public function test_embed_rss() {
-		$input = 'Some content';
+		$input = 'Some other content';
 
 		// go to home (non-feed)
 		$this->go_to_home();
 
 		// test if input was unchanged
 		$expected = $input;
-		$this->assertEquals( $expected, self::$class_instance->embed_rss( $input, 'full' ) );
+		$this->assertEquals( $expected, self::$class_instance->embed_rss( $input ) );
 
 		// go to feed
 		$this->go_to( get_bloginfo( 'rss2_url' ) );
 
 		// test if input was changed
 		self::$class_instance->options['rssbefore'] = 'Some RSS before text';
+		self::$class_instance->options['rssafter']  = '';
 		$expected = wpautop( self::$class_instance->options['rssbefore'] ) . $input;
 		$this->assertEquals( $expected, self::$class_instance->embed_rss( $input, 'full' ) );
 	}
@@ -887,5 +866,12 @@ class WPSEO_Frontend_Test extends WPSEO_UnitTestCase {
 		self::$class_instance->options[$option_name] = '';
 	}
 
+	/**
+	 * @param string $expected
+	 * @return void
+	 */
+	private function run_json_ld_test( $expected ) {
+		$this->expectOutput( $expected, self::$class_instance->internal_search_json_ld( ) );
+	}
 
 }
