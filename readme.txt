@@ -4,21 +4,25 @@ Donate link: https://yoast.com/
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 Tags: seo, SEO, Yoast SEO, google, meta, meta description, search engine optimization, xml sitemap, xml sitemaps, google sitemap, sitemap, sitemaps, robots meta, rss, rss footer, yahoo, bing, news sitemaps, XML News Sitemaps, WordPress SEO, WordPress SEO by Yoast, yoast, multisite, canonical, nofollow, noindex, keywords, meta keywords, description, webmaster tools, google webmaster tools, seo pack
-Requires at least: 3.8
-Tested up to: 4.0
-Stable tag: 1.7.1
+Requires at least: 3.9
+Tested up to: 4.2
+Stable tag: 2.1.1
 
 Improve your WordPress SEO: Write better content and have a fully optimized WordPress site using Yoast's WordPress SEO plugin.
 
 == Description ==
 
-WordPress out of the box is already technically quite a good platform for SEO, this was true when I wrote my original [WordPress SEO](https://yoast.com/articles/wordpress-seo/) article in 2008 (and updated every few months) and it's still true today, but that doesn't mean you can't improve it further! This plugin is written from the ground up by Joost de Valk and his team at [Yoast](https://yoast.com/) to improve your site's SEO on *all* needed aspects. While this [WordPress SEO plugin](https://yoast.com/wordpress/plugins/seo/) goes the extra mile to take care of all the technical optimization, more on that below, it first and foremost helps you write better content.  WordPress SEO forces you to choose a focus keyword when you're writing your articles, and then makes sure you use that focus keyword everywhere.
+WordPress out of the box is already technically quite a good platform for SEO, this was true when Joost wrote his original [WordPress SEO](https://yoast.com/articles/wordpress-seo/) article in 2008 (and updated every few months) and it's still true today, but that doesn't mean you can't improve it further! This plugin is written from the ground up by Joost de Valk and his team at [Yoast](https://yoast.com/) to improve your site's SEO on *all* needed aspects. While this [WordPress SEO plugin](https://yoast.com/wordpress/plugins/seo/) goes the extra mile to take care of all the technical optimization, more on that below, it first and foremost helps you write better content.  WordPress SEO forces you to choose a focus keyword when you're writing your articles, and then makes sure you use that focus keyword everywhere.
 
 > <strong>Premium Support</strong><br>
 > The Yoast team does not provide support for the WordPress SEO plugin on the WordPress.org forums. One on one email support is available to people who bought the [Premium WordPress SEO plugin](https://yoast.com/wordpress/plugins/seo-premium/) only.
 > Note that the Premium SEO plugin has several extra features too so it might be well worth your investment!
 >
 > You should also check out the [Local SEO](https://yoast.com/wordpress/plugins/local-seo/), [News SEO](https://yoast.com/wordpress/plugins/news-seo/) and [Video SEO](https://yoast.com/wordpress/plugins/video-seo/) extensions to WordPress SEO, these of course come with support too.
+
+Take a look at the explanation of the General tab in WordPress SEO, this is one of the 13 tutorial videos included in the [Premium version of WordPress SEO](https://yoast.com/wordpress/plugins/seo-premium/):
+
+https://www.youtube.com/watch?v=co5TjUwqWIQ&w=532&rel=0
 
 > <strong>Bug Reports</strong><br>
 > Bug reports for WordPress SEO are [welcomed on GitHub](https://github.com/Yoast/wordpress-seo). Please note GitHub is _not_ a support forum and issues that aren't properly qualified as bugs will be closed.
@@ -115,6 +119,142 @@ You'll find the [FAQ on Yoast.com](https://yoast.com/wordpress/plugins/seo/faq/)
 7. The advanced section of the WordPress SEO meta box.
 
 == Changelog ==
+
+= 2.1.1 =
+
+Release Date: April 21st, 2015
+
+* Bugfixes:
+	* Fixes a bug where the JSON+LD output was outputted twice when company or person info wasn't set.
+	* Fixes a compatibility issue with Video SEO and WooCommerce SEO add-ons causing WSOD on the frontend for video's and WooCommerce products.
+	* Fixes a compatibility issue with BBPress caused by hooking `current_user_can` too early.
+
+= 2.1 =
+
+Release Date: April 20th, 2015
+
+* Features:
+	* Added support for [website name JSON+LD markup](https://developers.google.com/structured-data/site-name).
+
+* Enhancements:
+	* Makes sure Twitter cards are by default enabled since they don't need to be validated anymore by Twitter.
+	* Removes the Twitter url meta tag, since Twitter no longer uses it.
+	* Shows a validation error when a user selects a featured image for a post that is smaller than 200x200 pixels.
+	* Shows a validation error when a user tries to use shortcodes in the titles and meta's settings page that are incompatible with the type of content those titles and meta's are associated with.
+	* Makes sure no taxonomy metadata is lost with the upcoming 4.2 version of WordPress.
+	* Upgraded to Facebook Graph API 3.0 for fetching Facebook user ID's straight from Facebook.
+	* Made the plugin conflict notices more user friendly, explaining better which piece of functionality might be impacted, offering a link to the corresponding settings and a button to deactivate the conflicting plugin.
+
+* Bugfixes:
+	* Fixes a bug where the sitemaps were no longer being served from WP transient cache.
+	* Fixes a bug where breadcrumbs weren't nested properly.
+	* Fixes a possible "headers already sent" error in the sitemaps.
+	* Fixes a notice for the homepage URL in post type sitemaps.
+	* Fixes an "undefined index" notice on the sitemaps.
+	* Fixes an "undefined index" notice in the breadcrumbs.
+	* Fixes a bug where translations were not loaded when used as MU-plugin.
+	* Fixes a JS error that was raised when editing post-types without a TinyMCE editor.
+
+* Security:
+	* Fixes a possible XSS vulnerability. Thanks [Johannes Schmitt](https://github.com/schmittjoh) from [Scrutinizer CI](https://scrutinizer-ci.com/) for discovering and responsibly disclosing this issue.
+
+= 2.0.1 =
+
+Release Date: April 1st, 2015
+
+* Bugfixes:
+	* Fixes an issue where (in rare cases) people upgrading to 2.0 got stuck in a redirect loop on their admin.
+	* Fixes a broken link in the Dutch translation, causing the Pinterest tab on the Social settings page to overflow into the Google+ tab.
+	* Fixes a small typo on the about page.
+
+= 2.0 =
+
+Release Date: March 26th, 2015
+
+* Features:
+	* Simplified and revised Admin menu's:
+		* Moved all advanced functionality to one "Advanced" submenu page.
+		* Moved the bulk editor, the export functionality and the file editor to one "Tools" submenu page.
+		* Improved consistency and usability of settings pages by having them use exactly the same, tab-based, styling.
+	* Made it easy to output structured data for social profiles, person and company profiles, for use in Google Knowledge Graph.
+
+* Enhancements:
+	* Makes sure the user is redirected to the last active settings tab after saving.
+
+* Bugfixes:
+	* Fixes a bug where custom field variables were no longer working in the snippet preview.
+	* Fixes a bug where the $post global was emptied by our Frontend class, causing conflicts with other plugins.
+	* Fixes a bug where variables weren't replaced in the og:description meta tag.
+	* Fixes a bug where the breadcrumbs caused an undefined variable notice.
+
+* Under the hood:
+	* Contains an incredible amount of code style improvements, making the code cleaner and more readable.
+	* Makes sure every function in the plugin is documented using PHPDoc by having it checked automatically by the Codesniffer.
+	* Refactored a lot of legacy code in the admin, mainly with regard to the way output is rendered. Provides for a better separation of concerns, making the code more comprehensible and re-usable.
+	* Deprecated a large amount of form methods and moved them to the `Yoast_Form` class. Click [here](https://github.com/Yoast/wordpress-seo/blob/add975664d1f160eed262b02327a93bda5488f8b/admin/class-config.php#L172) for the list of deprecated methods.
+	* Deprecated a large amount of utility functions and moved them to the `WPSEO_Utils` class. Click [here](https://github.com/Yoast/wordpress-seo/blob/add975664d1f160eed262b02327a93bda5488f8b/inc/wpseo-functions.php#L496) for the list of deprecated functions.
+
+= 1.7.4 =
+
+Release Date: March 11th, 2015
+
+* Security fix: fixed possible CSRF and blind SQL injection vulnerabilities in bulk editor. Added strict sanitation to order_by and order params. Added extra nonce checks on requests sending additional parameters. Minimal capability needed to access the bulk editor is now Editor. Thanks [Ryan Dewhurst](https://github.com/ethicalhack3r) from WPScan for discovering and responsibly disclosing this issue.
+
+= 1.7.3.3 =
+
+Release Date: February 23rd, 2015
+
+* Bugfixes:
+	* Repair missing dependencies...
+
+= 1.7.3.2 =
+
+Release Date: February 23rd, 2015
+
+* Bugfixes:
+	* Fixes a bug where the rel="next" and rel="prev" links were broken for all taxonomies.
+	* Removes an obsolete quote from the html for the seo metabox.
+
+= 1.7.3.1 =
+
+Release Date: February 19th, 2015
+
+* Bugfixes:
+	* Fixes a bug where the keyword analysis was broken.
+	* Fixes a bug where our plugin raised a fatal error in the wpseo_admin bar when the $wpseo_front global was used.
+
+= 1.7.3 =
+
+Release Date: February 17th, 2015
+
+* Bugfixes:
+	* Fixes a bug where the translations were corrupted due to an issue with out glotpress grunt task.
+
+= 1.7.2 =
+
+Release Date: February 17th, 2015
+
+* Enhancements:
+	* Contains lots of performance optimizations, including removal of unnecessary inclusion and defined checks for every classfile, refactoring of frontend logic, cutting unnecessary inheritance chains et. al.
+	* Adds Twitter gallery cards.
+	* Adds Twitter cards for non singular pages (including Homepage).
+	* Allows archive titles & meta to be set on non public post types that do have a public archive, props [xeeeveee](https://github.com/xeeeveee).
+	* Huge performance gain for `enrich_defaults()`, props [Koen Van den Wijngaert](https://github.com/vdwijngaert).
+	* Nextscripts removed from the OG conflict list.
+	* Added full Composer support, switched to Composer for dependency management and autoloading.
+
+* Bugfixes:
+	* Fixes a bug where new posts weren't always added to the post sitemap properly in case of multiple sitemaps.
+	* Fixes a grammatical error in the tutorial.
+	* Fixes a bug where %%currentyear%% shortcode wasn't parsed well in the meta description.
+	* Fixes an undefined index notice in the opengraph functionality.
+	* Fixes a bug where variable placeholders were not always assigned the correct value, props [Andy Sozot](https://github.com/sozot) for reporting and [Juliette](https://github.com/jrfnl) for fixing.
+	* Fixes a bug with SEO score on servers using international number formats.
+	* Fixes broken backward compatibility / snippet preview, props [Juliette](https://github.com/jrfnl).
+	* Fixes a bug where the %%page%% shortcode wasn't properly rendered in the titles and meta's.
+	* Fixes a bug where custom replacement variables where not properly rendered when using them in multiple fields.
+	* Fixes at least a large part of the keyword density 0% issues.
+	* Corrected price on WooCommerce SEO banner.
 
 = 1.7.1 =
 
