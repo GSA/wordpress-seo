@@ -1,0 +1,77 @@
+# Grunt aliases
+---
+# Build everything
+build:
+  - 'build:css'
+  - 'build:images'
+  - 'build:js'
+  - 'build:i18n'
+# Build CSS from SCSS to production
+'build:sass':
+  - 'sass:build'
+'build:css':
+  - 'build:sass'
+  - 'postcss:build'
+  - 'wpcss'
+  - 'clean:before-rtlcss'
+  - 'rtlcss'
+  - 'cssmin'
+# Optimise images from source to production
+'build:images':
+  - 'imagemin'
+# Build JavaScript from assets to production
+'build:js':
+  - 'copy'
+  - 'browserify:build'
+  - 'uglify'
+
+# Build internationalisation features
+'build:i18n':
+  - 'build:i18n:potFiles'
+  - 'build:i18n:translations'
+# Create the relevant POT files
+'build:i18n:potFiles':
+  - 'makepot'
+  - 'shell:makepot-yoast-components'
+  - 'shell:combine-pot-files'
+# Download and build the latest translations
+'build:i18n:translations':
+  - 'glotpress_download'
+  - 'po2json'
+  - 'i18n-clean-json'
+  - 'clean:po-files'
+
+# Check health of the project
+check:
+  - 'check:js'
+  - 'check:php'
+  - 'check:i18n'
+'check:js':
+  - 'eslint'
+'check:php':
+  - 'phplint'
+  - 'phpcs'
+'check:i18n':
+  - 'checktextdomain'
+
+# Get the project ready for release
+release:
+  - 'build:images'
+  - 'release:css'
+  - 'release:js'
+  - 'release:clean'
+'release:css':
+  - 'build:css'
+  - 'cssmin'
+'release:js':
+  - 'copy'
+  - 'browserify:build'
+  - 'browserify:release-es6'
+  - 'uglify'
+'release:clean':
+  - 'clean:release-js'
+  - 'clean:release-css'
+  - 'clean:release-misc'
+# Default task
+default:
+  - build

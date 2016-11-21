@@ -13,7 +13,7 @@ $robots_file    = get_home_path() . 'robots.txt';
 $ht_access_file = get_home_path() . '.htaccess';
 
 if ( isset( $_POST['create_robots'] ) ) {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	if ( ! current_user_can( 'edit_files' ) ) {
 		die( __( 'You cannot create a robots.txt file.', 'wordpress-seo' ) );
 	}
 
@@ -29,7 +29,7 @@ if ( isset( $_POST['create_robots'] ) ) {
 }
 
 if ( isset( $_POST['submitrobots'] ) ) {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	if ( ! current_user_can( 'edit_files' ) ) {
 		die( __( 'You cannot edit the robots.txt file.', 'wordpress-seo' ) );
 	}
 
@@ -47,7 +47,7 @@ if ( isset( $_POST['submitrobots'] ) ) {
 }
 
 if ( isset( $_POST['submithtaccess'] ) ) {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	if ( ! current_user_can( 'edit_files' ) ) {
 		die( __( 'You cannot edit the .htaccess file.', 'wordpress-seo' ) );
 	}
 
@@ -64,12 +64,25 @@ if ( isset( $_POST['submithtaccess'] ) ) {
 }
 
 if ( isset( $msg ) && ! empty( $msg ) ) {
-	echo '<div id="message" style="width:94%;" class="updated fade"><p>', esc_html( $msg ), '</p></div>';
+	echo '<div id="message" class="updated fade"><p>', esc_html( $msg ), '</p></div>';
 }
 
-$action_url = network_admin_url( 'admin.php?page=wpseo_tools&tool=file-editor' ); // auto-falls back on admin_url for non-multisite
+if ( is_multisite() ) {
+	$action_url = network_admin_url( 'admin.php?page=wpseo_files' );
+}
+else {
+	$action_url = admin_url( 'admin.php?page=wpseo_tools&tool=file-editor' );
+}
+
+echo '<br><br>';
+$helpcenter_tab = new WPSEO_Option_Tab( 'bulk-editor', 'Bulk editor',
+	array( 'video_url' => 'https://yoa.st/screencast-tools-file-editor' ) );
+
+$helpcenter = new WPSEO_Help_Center( 'bulk-editor', $helpcenter_tab );
+$helpcenter->output_help_center();
 
 echo '<h2>', __( 'Robots.txt', 'wordpress-seo' ), '</h2>';
+
 
 if ( ! file_exists( $robots_file ) ) {
 	if ( is_writable( get_home_path() ) ) {
@@ -99,36 +112,39 @@ else {
 	else {
 		echo '<form action="', esc_url( $action_url ), '" method="post" id="robotstxtform">';
 		wp_nonce_field( 'wpseo-robotstxt', '_wpnonce', true, true );
-		echo '<p>', __( 'Edit the content of your robots.txt:', 'wordpress-seo' ), '</p>';
-		echo '<textarea class="large-text code" rows="15" name="robotsnew">', $robots_txt_content, '</textarea><br/>';
+		echo '<p><label for="robotsnew" class="yoast-inline-label">', __( 'Edit the content of your robots.txt:', 'wordpress-seo' ), '</label></p>';
+		echo '<textarea class="large-text code" rows="15" name="robotsnew" id="robotsnew">', $robots_txt_content, '</textarea><br/>';
 		echo '<div class="submit"><input class="button" type="submit" name="submitrobots" value="', __( 'Save changes to Robots.txt', 'wordpress-seo' ), '" /></div>';
 		echo '</form>';
 	}
 }
+if ( ( isset( $_SERVER['SERVER_SOFTWARE'] ) && stristr( $_SERVER['SERVER_SOFTWARE'], 'nginx' ) === false ) ) {
 
-echo '<h2>', __( '.htaccess file', 'wordpress-seo' ), '</h2>';
-if ( ( isset( $_SERVER['SERVER_SOFTWARE'] ) && stristr( $_SERVER['SERVER_SOFTWARE'], 'nginx' ) === false ) && file_exists( $ht_access_file ) ) {
-	$f = fopen( $ht_access_file, 'r' );
+	echo '<h2>', __( '.htaccess file', 'wordpress-seo' ), '</h2>';
 
-	$contentht = '';
-	if ( filesize( $ht_access_file ) > 0 ) {
-		$contentht = fread( $f, filesize( $ht_access_file ) );
-	}
-	$contentht = esc_textarea( $contentht );
+	if ( file_exists( $ht_access_file ) ) {
+		$f = fopen( $ht_access_file, 'r' );
 
-	if ( ! is_writable( $ht_access_file ) ) {
-		echo '<p><em>', __( 'If your .htaccess were writable, you could edit it from here.', 'wordpress-seo' ), '</em></p>';
-		echo '<textarea class="large-text code" disabled="disabled" rows="15" name="robotsnew">', $contentht, '</textarea><br/>';
+		$contentht = '';
+		if ( filesize( $ht_access_file ) > 0 ) {
+			$contentht = fread( $f, filesize( $ht_access_file ) );
+		}
+		$contentht = esc_textarea( $contentht );
+
+		if ( ! is_writable( $ht_access_file ) ) {
+			echo '<p><em>', __( 'If your .htaccess were writable, you could edit it from here.', 'wordpress-seo' ), '</em></p>';
+			echo '<textarea class="large-text code" disabled="disabled" rows="15" name="robotsnew">', $contentht, '</textarea><br/>';
+		}
+		else {
+			echo '<form action="', esc_url( $action_url ), '" method="post" id="htaccessform">';
+			wp_nonce_field( 'wpseo-htaccess', '_wpnonce', true, true );
+			echo '<p><label for="htaccessnew" class="yoast-inline-label">', __( 'Edit the content of your .htaccess:', 'wordpress-seo' ), '</label></p>';
+			echo '<textarea class="large-text code" rows="15" name="htaccessnew" id="htaccessnew">', $contentht, '</textarea><br/>';
+			echo '<div class="submit"><input class="button" type="submit" name="submithtaccess" value="', __( 'Save changes to .htaccess', 'wordpress-seo' ), '" /></div>';
+			echo '</form>';
+		}
 	}
 	else {
-		echo '<form action="', esc_url( $action_url ), '" method="post" id="htaccessform">';
-		wp_nonce_field( 'wpseo-htaccess', '_wpnonce', true, true );
-		echo '<p>', __( 'Edit the content of your .htaccess:', 'wordpress-seo' ), '</p>';
-		echo '<textarea class="large-text code" rows="15" name="htaccessnew">', $contentht, '</textarea><br/>';
-		echo '<div class="submit"><input class="button" type="submit" name="submithtaccess" value="', __( 'Save changes to .htaccess', 'wordpress-seo' ), '" /></div>';
-		echo '</form>';
+		echo '<p>', __( 'If you had a .htaccess file and it was editable, you could edit it from here.', 'wordpress-seo' ), '</p>';
 	}
-}
-elseif ( ( isset( $_SERVER['SERVER_SOFTWARE'] ) && stristr( $_SERVER['SERVER_SOFTWARE'], 'nginx' ) === false ) && ! file_exists( $ht_access_file ) ) {
-	echo '<p>', __( 'If you had a .htaccess file and it was editable, you could edit it from here.', 'wordpress-seo' ), '</p>';
 }

@@ -30,6 +30,7 @@ class WPSEO_Bulk_Title_Editor_List_Table extends WPSEO_Bulk_List_Table {
 
 	/**
 	 * The field in the database where meta field is saved.
+	 *
 	 * @var string
 	 */
 	protected $target_db_field = 'title';
@@ -42,8 +43,10 @@ class WPSEO_Bulk_Title_Editor_List_Table extends WPSEO_Bulk_List_Table {
 	public function get_columns() {
 
 		$columns = array(
-			'col_existing_yoast_seo_title' => __( 'Existing Yoast SEO Title', 'wordpress-seo' ),
-			'col_new_yoast_seo_title'      => __( 'New Yoast SEO Title', 'wordpress-seo' ),
+			/* translators: %1$s expands to Yoast SEO */
+			'col_existing_yoast_seo_title' => sprintf( __( 'Existing %1$s Title', 'wordpress-seo' ), 'Yoast SEO' ),
+			/* translators: %1$s expands to Yoast SEO */
+			'col_new_yoast_seo_title'      => sprintf( __( 'New %1$s Title', 'wordpress-seo' ), 'Yoast SEO' ),
 		);
 
 		return $this->merge_columns( $columns );
@@ -52,15 +55,15 @@ class WPSEO_Bulk_Title_Editor_List_Table extends WPSEO_Bulk_List_Table {
 	/**
 	 * Parse the title columns
 	 *
-	 * @param string $column_name
-	 * @param object $record
-	 * @param string $attributes
+	 * @param string $column_name Column name.
+	 * @param object $record      Data object.
+	 * @param string $attributes  HTML attributes.
 	 *
 	 * @return string
 	 */
 	protected function parse_page_specific_column( $column_name, $record, $attributes ) {
 
-		// Fill meta data if exists in $this->meta_data
+		// Fill meta data if exists in $this->meta_data.
 		$meta_data = ( ! empty( $this->meta_data[ $record->ID ] ) ) ? $this->meta_data[ $record->ID ] : array();
 
 		switch ( $column_name ) {
@@ -71,7 +74,7 @@ class WPSEO_Bulk_Title_Editor_List_Table extends WPSEO_Bulk_List_Table {
 
 			case 'col_new_yoast_seo_title':
 				return sprintf(
-					'<input type="text" id="%1$s" name="%1$s" class="wpseo-new-title" data-id="%2$s" />',
+					'<input type="text" id="%1$s" name="%1$s" class="wpseo-new-title" data-id="%2$s" aria-labelledby="col_new_yoast_seo_title" />',
 					'wpseo-new-title-' . $record->ID,
 					$record->ID
 				);
@@ -80,6 +83,4 @@ class WPSEO_Bulk_Title_Editor_List_Table extends WPSEO_Bulk_List_Table {
 
 		unset( $meta_data );
 	}
-
-
 } /* End of class */

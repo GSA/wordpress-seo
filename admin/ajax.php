@@ -14,12 +14,12 @@ if ( ! defined( 'WPSEO_VERSION' ) ) {
  */
 
 /**
- * Convenience function to JSON encode and echo resuls and then die
+ * Convenience function to JSON encode and echo results and then die
  *
- * @param array $results
+ * @param array $results Results array for encoding.
  */
 function wpseo_ajax_json_echo_die( $results ) {
-	echo json_encode( $results );
+	echo wp_json_encode( $results );
 	die();
 }
 
@@ -33,7 +33,7 @@ function wpseo_set_option() {
 
 	check_ajax_referer( 'wpseo-setoption' );
 
-	$option = sanitize_text_field( WPSEO_Utils::filter_input( INPUT_POST, 'option' ) );
+	$option = sanitize_text_field( filter_input( INPUT_POST, 'option' ) );
 	if ( $option !== 'page_comments' ) {
 		die( '-1' );
 	}
@@ -45,6 +45,11 @@ function wpseo_set_option() {
 add_action( 'wp_ajax_wpseo_set_option', 'wpseo_set_option' );
 
 /**
+ * Since 3.2 Notifications are dismissed in the Notification Center.
+ */
+add_action( 'wp_ajax_yoast_dismiss_notification', array( 'Yoast_Notification_Center', 'ajax_dismiss_notification' ) );
+
+/**
  * Function used to remove the admin notices for several purposes, dies on exit.
  */
 function wpseo_set_ignore() {
@@ -54,14 +59,33 @@ function wpseo_set_ignore() {
 
 	check_ajax_referer( 'wpseo-ignore' );
 
-	$options                            = get_option( 'wpseo' );
-	$ignore_key                         = sanitize_text_field( WPSEO_Utils::filter_input( INPUT_POST, 'option' ) );
+	$ignore_key = sanitize_text_field( filter_input( INPUT_POST, 'option' ) );
+
+	$options                          = get_option( 'wpseo' );
 	$options[ 'ignore_' . $ignore_key ] = true;
 	update_option( 'wpseo', $options );
+
 	die( '1' );
 }
 
 add_action( 'wp_ajax_wpseo_set_ignore', 'wpseo_set_ignore' );
+
+/**
+ * Hides the default tagline notice for a specific user.
+ */
+function wpseo_dismiss_tagline_notice() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		die( '-1' );
+	}
+
+	check_ajax_referer( 'wpseo-dismiss-tagline-notice' );
+
+	update_user_meta( get_current_user_id(), 'wpseo_seen_tagline_notice', 'seen' );
+
+	die( '1' );
+}
+
+add_action( 'wp_ajax_wpseo_dismiss_tagline_notice', 'wpseo_dismiss_tagline_notice' );
 
 /**
  * Function used to delete blocking files, dies on exit.
@@ -73,55 +97,46 @@ function wpseo_kill_blocking_files() {
 
 	check_ajax_referer( 'wpseo-blocking-files' );
 
-	$message = 'There were no files to delete.';
+	$message = 'success';
+	$errors  = array();
+
+	// Todo: Use WP_Filesystem, but not so easy to use in AJAX with credentials form still internal.
 	$options = get_option( 'wpseo' );
 	if ( is_array( $options['blocking_files'] ) && $options['blocking_files'] !== array() ) {
-		$message       = 'success';
-		$files_removed = 0;
-		foreach ( $options['blocking_files'] as $k => $file ) {
-			if ( ! @unlink( $file ) ) {
-				$message = __( 'Some files could not be removed. Please remove them via FTP.', 'wordpress-seo' );
+		foreach ( $options['blocking_files'] as $file ) {
+			if ( is_file( $file ) ) {
+				if ( ! @unlink( $file ) ) {
+					$errors[] = sprintf(
+						/* translators: %s expands to the file path and name. */
+						__( 'The file %s could not be removed. Please remove it via FTP.', 'wordpress-seo' ),
+						'<code>' . $file . '</code>'
+					);
+				}
 			}
-			else {
-				unset( $options['blocking_files'][ $k ] );
-				$files_removed ++;
+
+			if ( is_dir( $file ) ) {
+				if ( ! @ rmdir( $file ) ) {
+					$errors[] = sprintf(
+						/* translators: %s expands to the directory path and name. */
+						__( 'The directory %s could not be removed. Please remove it via FTP.', 'wordpress-seo' ),
+						'<code>' . $file . '</code>'
+					);
+				}
 			}
-		}
-		if ( $files_removed > 0 ) {
-			update_option( 'wpseo', $options );
 		}
 	}
 
-	die( $message );
+	if ( $errors ) {
+		$message = implode( '<br />', $errors );
+		wp_send_json_error( array( 'message' => $message ) );
+	}
+	else {
+		$message = __( 'Files successfully removed.', 'wordpress-seo' );
+		wp_send_json_success( array( 'message' => $message ) );
+	}
 }
 
 add_action( 'wp_ajax_wpseo_kill_blocking_files', 'wpseo_kill_blocking_files' );
-
-/**
- * Retrieve the suggestions from the Google Suggest API and return them to be
- * used in the suggest box within the plugin. Dies on exit.
- */
-function wpseo_get_suggest() {
-	check_ajax_referer( 'wpseo-get-suggest' );
-
-	$term   = urlencode( WPSEO_Utils::filter_input( INPUT_GET, 'term' ) );
-	$result = wp_remote_get( 'https://www.google.com/complete/search?output=toolbar&q=' . $term );
-
-	$return_arr = array();
-
-	if ( ! is_wp_error( $result ) ) {
-		preg_match_all( '`suggestion data="([^"]+)"/>`u', $result['body'], $matches );
-
-		if ( isset( $matches[1] ) && ( is_array( $matches[1] ) && $matches[1] !== array() ) ) {
-			foreach ( $matches[1] as $match ) {
-				$return_arr[] = html_entity_decode( $match, ENT_COMPAT, 'UTF-8' );
-			}
-		}
-	}
-	wpseo_ajax_json_echo_die( $return_arr );
-}
-
-add_action( 'wp_ajax_wpseo_get_suggest', 'wpseo_get_suggest' );
 
 /**
  * Used in the editor to replace vars for the snippet preview
@@ -130,9 +145,12 @@ function wpseo_ajax_replace_vars() {
 	global $post;
 	check_ajax_referer( 'wpseo-replace-vars' );
 
-	$post = get_post( intval( WPSEO_Utils::filter_input( INPUT_POST, 'post_id' ) ) );
+	$post = get_post( intval( filter_input( INPUT_POST, 'post_id' ) ) );
+	global $wp_query;
+	$wp_query->queried_object = $post;
+	$wp_query->queried_object_id = $post->ID;
 	$omit = array( 'excerpt', 'excerpt_only', 'title' );
-	echo wpseo_replace_vars( stripslashes( WPSEO_Utils::filter_input( INPUT_POST, 'string' ) ), $post, $omit );
+	echo wpseo_replace_vars( stripslashes( filter_input( INPUT_POST, 'string' ) ), $post, $omit );
 	die;
 }
 
@@ -159,14 +177,14 @@ add_action( 'wp_ajax_wpseo_save_metadesc', 'wpseo_save_description' );
 /**
  * Save titles & descriptions
  *
- * @param string $what
+ * @param string $what Type of item to save (title, description).
  */
 function wpseo_save_what( $what ) {
 	check_ajax_referer( 'wpseo-bulk-editor' );
 
-	$new      = WPSEO_Utils::filter_input( INPUT_POST, 'new_value' );
-	$post_id  = intval( WPSEO_Utils::filter_input( INPUT_POST, 'wpseo_post_id' ) );
-	$original = WPSEO_Utils::filter_input( INPUT_POST, 'existing_value' );
+	$new      = filter_input( INPUT_POST, 'new_value' );
+	$post_id  = intval( filter_input( INPUT_POST, 'wpseo_post_id' ) );
+	$original = filter_input( INPUT_POST, 'existing_value' );
 
 	$results = wpseo_upsert_new( $what, $post_id, $new, $original );
 
@@ -177,11 +195,11 @@ function wpseo_save_what( $what ) {
  * Helper function to update a post's meta data, returning relevant information
  * about the information updated and the results or the meta update.
  *
- * @param int    $post_id
- * @param string $new_meta_value
- * @param string $orig_meta_value
- * @param string $meta_key
- * @param string $return_key
+ * @param int    $post_id         Post ID.
+ * @param string $new_meta_value  New meta value to record.
+ * @param string $orig_meta_value Original meta value.
+ * @param string $meta_key        Meta key string.
+ * @param string $return_key      Return key string to use in results.
  *
  * @return string
  */
@@ -194,7 +212,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 	$upsert_results = array(
 		'status'                 => 'success',
 		'post_id'                => $post_id,
-		"new_{$return_key}"      => $new_meta_value,
+		"new_{$return_key}"      => $sanitized_new_meta_value,
 		"original_{$return_key}" => $orig_meta_value,
 	);
 
@@ -269,7 +287,7 @@ add_action( 'wp_ajax_wpseo_save_all_descriptions', 'wpseo_save_all_descriptions'
 /**
  * Utility function to save values
  *
- * @param string $what
+ * @param string $what Type of item so save.
  */
 function wpseo_save_all( $what ) {
 	check_ajax_referer( 'wpseo-bulk-editor' );
@@ -292,10 +310,10 @@ function wpseo_save_all( $what ) {
 /**
  * Insert a new value
  *
- * @param string $what
- * @param int    $post_id
- * @param string $new
- * @param string $original
+ * @param string $what     Item type (such as title).
+ * @param int    $post_id  Post ID.
+ * @param string $new      New value to record.
+ * @param string $original Original value.
  *
  * @return string
  */
@@ -306,15 +324,130 @@ function wpseo_upsert_new( $what, $post_id, $new, $original ) {
 }
 
 /**
- * Create an export and return the URL
+ * Handles the posting of a new FB admin.
  */
-function wpseo_get_export() {
-	check_ajax_referer( 'wpseo-export' );
+function wpseo_add_fb_admin() {
+	check_ajax_referer( 'wpseo_fb_admin_nonce' );
 
-	$include_taxonomy = ( WPSEO_Utils::filter_input( INPUT_POST, 'include_taxonomy' ) === 'true' ) ? true : false;
-	$export           = new WPSEO_Export( $include_taxonomy );
+	if ( ! current_user_can( 'manage_options' ) ) {
+		die( '-1' );
+	}
 
-	wpseo_ajax_json_echo_die( $export->get_results() );
+	$facebook_social = new Yoast_Social_Facebook();
+
+	wp_die( $facebook_social->add_admin( filter_input( INPUT_POST, 'admin_name' ), filter_input( INPUT_POST, 'admin_id' ) ) );
 }
 
-add_action( 'wp_ajax_wpseo_export', 'wpseo_get_export' );
+add_action( 'wp_ajax_wpseo_add_fb_admin', 'wpseo_add_fb_admin' );
+
+/**
+ * Retrieves the keyword for the keyword doubles.
+ */
+function ajax_get_keyword_usage() {
+	$post_id = filter_input( INPUT_POST, 'post_id' );
+	$keyword = filter_input( INPUT_POST, 'keyword' );
+
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		die( '-1' );
+	}
+
+	wp_die(
+		wp_json_encode( WPSEO_Meta::keyword_usage( $keyword, $post_id ) )
+	);
+}
+
+add_action( 'wp_ajax_get_focus_keyword_usage',  'ajax_get_keyword_usage' );
+
+/**
+ * Retrieves the keyword for the keyword doubles of the termpages.
+ */
+function ajax_get_term_keyword_usage() {
+	$post_id = filter_input( INPUT_POST, 'post_id' );
+	$keyword = filter_input( INPUT_POST, 'keyword' );
+	$taxonomyName = filter_input( INPUT_POST, 'taxonomy' );
+
+	$taxonomy = get_taxonomy( $taxonomyName );
+
+	if ( ! $taxonomy ) {
+		wp_die( 0 );
+	}
+
+	if ( ! current_user_can( $taxonomy->cap->edit_terms ) ) {
+		wp_die( -1 );
+	}
+
+	$usage = WPSEO_Taxonomy_Meta::get_keyword_usage( $keyword, $post_id, $taxonomyName );
+
+	// Normalize the result so it it the same as the post keyword usage AJAX request.
+	$usage = $usage[ $keyword ];
+
+	wp_die(
+		wp_json_encode( $usage )
+	);
+}
+
+add_action( 'wp_ajax_get_term_keyword_usage',  'ajax_get_term_keyword_usage' );
+
+/**
+ * Removes stopword from the sample permalink that is generated in an AJAX request
+ *
+ * @param array  $permalink The permalink generated for this post by WordPress.
+ * @param int    $post_ID The ID of the post.
+ * @param string $title The title for the post that the user used.
+ * @param string $name The name for the post that the user used.
+ *
+ * @return array
+ */
+function wpseo_remove_stopwords_sample_permalink( $permalink, $post_ID, $title, $name ) {
+	WPSEO_Options::get_instance();
+	$options = WPSEO_Options::get_options( array( 'wpseo_permalinks' ) );
+	if ( $options['cleanslugs'] !== true ) {
+		return $permalink;
+	}
+
+	/*
+	 * If the name is empty and the title is not, WordPress will generate a slug. In that case we want to remove stop
+	 * words from the slug.
+	 */
+	if ( empty( $name ) && ! empty( $title ) ) {
+		$stop_words = new WPSEO_Admin_Stop_Words();
+
+		// The second element is the slug.
+		$permalink[1] = $stop_words->remove_in( $permalink[1] );
+	}
+
+	return $permalink;
+}
+
+add_action( 'get_sample_permalink', 'wpseo_remove_stopwords_sample_permalink', 10, 4 );
+
+// Crawl Issue Manager AJAX hooks.
+new WPSEO_GSC_Ajax;
+
+// SEO Score Recalculations.
+new WPSEO_Recalculate_Scores_Ajax;
+
+new Yoast_Dashboard_Widget();
+
+new Yoast_OnPage_Ajax();
+
+new WPSEO_Shortcode_Filter();
+
+new WPSEO_Taxonomy_Columns();
+
+
+// Setting the notice for the recalculate the posts.
+new Yoast_Dismissable_Notice_Ajax( 'recalculate', Yoast_Dismissable_Notice_Ajax::FOR_SITE );
+
+/********************** DEPRECATED METHODS **********************/
+
+/**
+ * Create an export and return the URL
+ *
+ * @deprecated 3.3.2
+ */
+function wpseo_get_export() {
+	_deprecated_function( __METHOD__, 'WPSEO 3.3.2', 'This method is deprecated.' );
+
+	wpseo_ajax_json_echo_die( '' );
+}

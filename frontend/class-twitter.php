@@ -41,7 +41,7 @@ class WPSEO_Twitter {
 	 * Class constructor
 	 */
 	public function __construct() {
-		$this->options = WPSEO_Options::get_all();
+		$this->options = WPSEO_Options::get_option( 'wpseo_social' );
 		$this->twitter();
 	}
 
@@ -55,14 +55,13 @@ class WPSEO_Twitter {
 		$this->description();
 		$this->title();
 		$this->site_twitter();
-		$this->site_domain();
 		$this->image();
 		if ( is_singular() ) {
 			$this->author();
 		}
 
 		/**
-		 * Action: 'wpseo_twitter' - Hook to add all WP SEO Twitter output to so they're close together.
+		 * Action: 'wpseo_twitter' - Hook to add all Yoast SEO Twitter output to so they're close together.
 		 */
 		do_action( 'wpseo_twitter' );
 	}
@@ -86,18 +85,19 @@ class WPSEO_Twitter {
 	 */
 	private function determine_card_type() {
 		$this->type = $this->options['twitter_card_type'];
-		if ( is_singular() ) {
-			// If the current post has a gallery, output a gallery card
-			if ( has_shortcode( $GLOBALS['post']->post_content, 'gallery' ) ) {
-				$this->images = get_post_gallery_images();
-				if ( count( $this->images ) > 3 ) {
-					$this->type = 'gallery';
-				}
+
+		// TODO this should be reworked to use summary_large_image for any fitting image R.
+		if ( is_singular() && has_shortcode( $GLOBALS['post']->post_content, 'gallery' ) ) {
+
+			$this->images = get_post_gallery_images();
+
+			if ( count( $this->images ) > 0 ) {
+				$this->type = 'summary_large_image';
 			}
 		}
 
 		/**
-		 * Filter: 'wpseo_twitter_card_type' - Allow changing the Twitter Card type as output in the Twitter card by WP SEO
+		 * Filter: 'wpseo_twitter_card_type' - Allow changing the Twitter Card type as output in the Twitter card by Yoast SEO
 		 *
 		 * @api string $unsigned The type string
 		 */
@@ -113,11 +113,8 @@ class WPSEO_Twitter {
 		if ( ! in_array( $this->type, array(
 			'summary',
 			'summary_large_image',
-			'photo',
-			'gallery',
 			'app',
 			'player',
-			'product',
 		) )
 		) {
 			$this->type = 'summary';
@@ -127,13 +124,13 @@ class WPSEO_Twitter {
 	/**
 	 * Output the metatag
 	 *
-	 * @param string $name
-	 * @param string $value
-	 * @param bool   $escaped
+	 * @param string $name    Tag name string.
+	 * @param string $value   Tag value string.
+	 * @param bool   $escaped Force escape flag.
 	 */
 	private function output_metatag( $name, $value, $escaped = false ) {
 
-		// Escape the value if not escaped
+		// Escape the value if not escaped.
 		if ( false === $escaped ) {
 			$value = esc_attr( $value );
 		}
@@ -145,8 +142,8 @@ class WPSEO_Twitter {
 		 */
 		$metatag_key = apply_filters( 'wpseo_twitter_metatag_key', 'name' );
 
-		// Output meta
-		echo '<meta ', esc_attr( $metatag_key ), '="twitter:', esc_attr( $name ), '" content="', $value, '"/>', "\n";
+		// Output meta.
+		echo '<meta ', esc_attr( $metatag_key ), '="twitter:', esc_attr( $name ), '" content="', $value, '" />', "\n";
 	}
 
 	/**
@@ -158,12 +155,18 @@ class WPSEO_Twitter {
 		if ( is_singular() ) {
 			$meta_desc = $this->single_description();
 		}
+		elseif ( WPSEO_Frontend::get_instance()->is_posts_page() ) {
+			$meta_desc = $this->single_description( get_option( 'page_for_posts' ) );
+		}
+		elseif ( is_category() || is_tax() || is_tag() ) {
+			$meta_desc = $this->taxonomy_description();
+		}
 		else {
 			$meta_desc = $this->fallback_description();
 		}
 
 		/**
-		 * Filter: 'wpseo_twitter_description' - Allow changing the Twitter description as output in the Twitter card by WP SEO
+		 * Filter: 'wpseo_twitter_description' - Allow changing the Twitter description as output in the Twitter card by Yoast SEO
 		 *
 		 * @api string $twitter The description string
 		 */
@@ -176,10 +179,13 @@ class WPSEO_Twitter {
 	/**
 	 * Returns the description for a singular page
 	 *
+	 * @param int $post_id Post ID.
+	 *
 	 * @return string
 	 */
-	private function single_description() {
-		$meta_desc = trim( WPSEO_Meta::get_value( 'twitter-description' ) );
+	private function single_description( $post_id = 0 ) {
+		$meta_desc = trim( WPSEO_Meta::get_value( 'twitter-description', $post_id ) );
+
 		if ( is_string( $meta_desc ) && '' !== $meta_desc ) {
 			return $meta_desc;
 		}
@@ -190,6 +196,27 @@ class WPSEO_Twitter {
 		}
 
 		return strip_tags( get_the_excerpt() );
+	}
+
+
+	/**
+	 * Getting the description for the taxonomy
+	 *
+	 * @return bool|mixed|string
+	 */
+	private function taxonomy_description() {
+		$meta_desc = WPSEO_Taxonomy_Meta::get_meta_without_term( 'twitter-description' );
+
+		if ( ! is_string( $meta_desc ) || $meta_desc === '' ) {
+			$meta_desc = $this->fallback_description();
+		}
+
+		if ( is_string( $meta_desc ) || $meta_desc !== '' ) {
+			return $meta_desc;
+		}
+
+		return trim( strip_tags( term_description() ) );
+
 	}
 
 	/**
@@ -210,12 +237,18 @@ class WPSEO_Twitter {
 		if ( is_singular() ) {
 			$title = $this->single_title();
 		}
+		elseif ( WPSEO_Frontend::get_instance()->is_posts_page() ) {
+			$title = $this->single_title( get_option( 'page_for_posts' ) );
+		}
+		elseif ( is_category() || is_tax() || is_tag() ) {
+			$title = $this->taxonomy_title();
+		}
 		else {
 			$title = $this->fallback_title();
 		}
 
 		/**
-		 * Filter: 'wpseo_twitter_title' - Allow changing the Twitter title as output in the Twitter card by WP SEO
+		 * Filter: 'wpseo_twitter_title' - Allow changing the Twitter title as output in the Twitter card by Yoast SEO
 		 *
 		 * @api string $twitter The title string
 		 */
@@ -228,16 +261,32 @@ class WPSEO_Twitter {
 	/**
 	 * Returns the Twitter title for a single post
 	 *
+	 * @param int $post_id Post ID.
+	 *
 	 * @return string
 	 */
-	private function single_title() {
-		$title = WPSEO_Meta::get_value( 'twitter-title' );
-		if ( ! is_string( $title ) || '' === $title ) {
+	private function single_title( $post_id = 0 ) {
+		$title = WPSEO_Meta::get_value( 'twitter-title', $post_id );
+		if ( ! is_string( $title ) || $title === '' ) {
 			return $this->fallback_title();
 		}
-		else {
-			return $title;
+
+		return $title;
+	}
+
+	/**
+	 * Getting the title for the taxonomy
+	 *
+	 * @return bool|mixed|string
+	 */
+	private function taxonomy_title() {
+		$title = WPSEO_Taxonomy_Meta::get_meta_without_term( 'twitter-title' );
+
+		if ( ! is_string( $title ) || $title === '' ) {
+			return $this->fallback_title();
 		}
+
+		return $title;
 	}
 
 	/**
@@ -254,7 +303,7 @@ class WPSEO_Twitter {
 	 */
 	protected function site_twitter() {
 		/**
-		 * Filter: 'wpseo_twitter_site' - Allow changing the Twitter site account as output in the Twitter card by WP SEO
+		 * Filter: 'wpseo_twitter_site' - Allow changing the Twitter site account as output in the Twitter card by Yoast SEO
 		 *
 		 * @api string $unsigned Twitter site account string
 		 */
@@ -272,9 +321,9 @@ class WPSEO_Twitter {
 	 * Solves issues with filters returning urls and theme's/other plugins also adding a user meta
 	 * twitter field which expects url rather than an id (which is what we expect).
 	 *
-	 * @param  string $id Twitter id or url
+	 * @param  string $id Twitter ID or url.
 	 *
-	 * @return string|bool Twitter id or false if it failed to get a valid twitter id
+	 * @return string|bool Twitter ID or false if it failed to get a valid Twitter ID.
 	 */
 	private function get_twitter_id( $id ) {
 		if ( preg_match( '`([A-Za-z0-9_]{1,25})$`', $id, $match ) ) {
@@ -286,50 +335,46 @@ class WPSEO_Twitter {
 	}
 
 	/**
-	 * Displays the domain tag for the site.
-	 */
-	protected function site_domain() {
-		/**
-		 * Filter: 'wpseo_twitter_domain' - Allow changing the Twitter domain as output in the Twitter card by WP SEO
-		 *
-		 * @api string $unsigned Name string
-		 */
-		$domain = apply_filters( 'wpseo_twitter_domain', get_bloginfo( 'name' ) );
-		if ( is_string( $domain ) && $domain !== '' ) {
-			$this->output_metatag( 'domain', $domain );
-		}
-	}
-
-	/**
 	 * Displays the image for Twitter
 	 *
 	 * Only used when OpenGraph is inactive or Summary Large Image card is chosen.
 	 */
 	protected function image() {
-		if ( 'gallery' === $this->type ) {
-			$this->gallery_images_output();
+
+		if ( is_category() || is_tax() || is_tag() ) {
+			$this->taxonomy_image_output();
 		}
 		else {
 			$this->single_image_output();
 		}
 
-		if ( count( $this->shown_images ) == 0 && $this->options['og_default_image'] !== '' ) {
+		if ( count( $this->shown_images ) === 0 && $this->options['og_default_image'] !== '' ) {
 			$this->image_output( $this->options['og_default_image'] );
 		}
 	}
 
 	/**
-	 * Outputs the first 4 images of a gallery as the posts gallery images
+	 * Outputs the first image of a gallery.
 	 */
 	private function gallery_images_output() {
-		$image_counter = 0;
-		foreach ( $this->images as $image ) {
-			if ( $image_counter > 3 ) {
-				return;
+
+		$this->image_output( reset( $this->images ) );
+	}
+
+	/**
+	 * @return bool
+	 */
+	private function taxonomy_image_output() {
+		foreach ( array( 'twitter-image', 'opengraph-image' ) as $tag ) {
+			$img = WPSEO_Taxonomy_Meta::get_meta_without_term( $tag );
+			if ( $img !== '' ) {
+				$this->image_output( $img );
+
+				return true;
 			}
-			$this->image_output( $image, 'image' . $image_counter );
-			$image_counter ++;
 		}
+
+		return false;
 	}
 
 	/**
@@ -339,11 +384,25 @@ class WPSEO_Twitter {
 		if ( $this->homepage_image_output() ) {
 			return;
 		}
+		elseif ( $this->posts_page_image_output() ) { // Posts page, which won't be caught by is_singular() below.
+			return;
+		}
+
 		if ( is_singular() ) {
 			if ( $this->image_from_meta_values_output() ) {
 				return;
 			}
+
+			$post_id = get_the_ID();
+
+			if ( $this->image_of_attachment_page_output( $post_id ) ) {
+				return;
+			}
 			if ( $this->image_thumbnail_output() ) {
+				return;
+			}
+			if ( count( $this->images ) > 0 ) {
+				$this->gallery_images_output();
 				return;
 			}
 			if ( $this->image_from_content_output() ) {
@@ -370,20 +429,54 @@ class WPSEO_Twitter {
 	}
 
 	/**
-	 * Outputs a Twitter image tag for a given image
-	 *
-	 * @param string $img The source URL to the image.
-	 * @param string $tag The tag to output, defaults to <code>image:src</code> but can be altered for use in galleries.
+	 * Show the posts page image.
 	 *
 	 * @return bool
 	 */
-	protected function image_output( $img, $tag = 'image:src' ) {
+	private function posts_page_image_output() {
+
+		if ( is_front_page() || ! is_home() ) {
+			return false;
+		}
+
+		$post_id = get_option( 'page_for_posts' );
+
+		if ( $this->image_from_meta_values_output( $post_id ) ) {
+			return true;
+		}
+
+		if ( $this->image_thumbnail_output( $post_id ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Outputs a Twitter image tag for a given image
+	 *
+	 * @param string  $img The source URL to the image.
+	 * @param boolean $tag Deprecated argument, previously used for gallery images.
+	 *
+	 * @return bool
+	 */
+	protected function image_output( $img, $tag = false ) {
+
+		if ( $tag ) {
+			_deprecated_argument( __METHOD__, 'WPSEO 2.4' );
+		}
+
 		/**
 		 * Filter: 'wpseo_twitter_image' - Allow changing the Twitter Card image
 		 *
 		 * @api string $img Image URL string
 		 */
 		$img = apply_filters( 'wpseo_twitter_image', $img );
+
+		if ( WPSEO_Utils::is_url_relative( $img ) === true && $img[0] === '/' ) {
+			$parsed_url = parse_url( home_url() );
+			$img        = $parsed_url['scheme'] . '://' . $parsed_url['host'] . $img;
+		}
 
 		$escaped_img = esc_url( $img );
 
@@ -392,7 +485,7 @@ class WPSEO_Twitter {
 		}
 
 		if ( is_string( $escaped_img ) && $escaped_img !== '' ) {
-			$this->output_metatag( $tag, $escaped_img, true );
+			$this->output_metatag( 'image', $escaped_img, true );
 			array_push( $this->shown_images, $escaped_img );
 
 			return true;
@@ -404,11 +497,13 @@ class WPSEO_Twitter {
 	/**
 	 * Retrieve images from the post meta values
 	 *
+	 * @param int $post_id Optional post ID to use.
+	 *
 	 * @return bool
 	 */
-	private function image_from_meta_values_output() {
+	private function image_from_meta_values_output( $post_id = 0 ) {
 		foreach ( array( 'twitter-image', 'opengraph-image' ) as $tag ) {
-			$img = WPSEO_Meta::get_value( $tag );
+			$img = WPSEO_Meta::get_value( $tag, $post_id );
 			if ( $img !== '' ) {
 				$this->image_output( $img );
 
@@ -420,18 +515,47 @@ class WPSEO_Twitter {
 	}
 
 	/**
-	 * Retrieve the featured image
+	 * Retrieve an attachment page's attachment
+	 *
+	 * @param string $attachment_id The ID of the attachment for which to retrieve the image.
 	 *
 	 * @return bool
 	 */
-	private function image_thumbnail_output() {
-		if ( function_exists( 'has_post_thumbnail' ) && has_post_thumbnail( get_the_ID() ) ) {
+	private function image_of_attachment_page_output( $attachment_id ) {
+		if ( get_post_type( $attachment_id ) === 'attachment' ) {
+			$mime_type = get_post_mime_type( $attachment_id );
+			switch ( $mime_type ) {
+				case 'image/jpeg':
+				case 'image/png':
+				case 'image/gif':
+					$this->image_output( wp_get_attachment_url( $attachment_id ) );
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Retrieve the featured image
+	 *
+	 * @param int $post_id Optional post ID to use.
+	 *
+	 * @return bool
+	 */
+	private function image_thumbnail_output( $post_id = 0 ) {
+
+		if ( empty( $post_id ) ) {
+			$post_id = get_the_ID();
+		}
+
+		if ( function_exists( 'has_post_thumbnail' ) && has_post_thumbnail( $post_id ) ) {
 			/**
 			 * Filter: 'wpseo_twitter_image_size' - Allow changing the Twitter Card image size
 			 *
 			 * @api string $featured_img Image size string
 			 */
-			$featured_img = wp_get_attachment_image_src( get_post_thumbnail_id( get_the_ID() ), apply_filters( 'wpseo_twitter_image_size', 'full' ) );
+			$featured_img = wp_get_attachment_image_src( get_post_thumbnail_id( $post_id ), apply_filters( 'wpseo_twitter_image_size', 'full' ) );
 
 			if ( $featured_img ) {
 				$this->image_output( $featured_img[0] );
@@ -449,7 +573,17 @@ class WPSEO_Twitter {
 	 * @return bool
 	 */
 	private function image_from_content_output() {
-		if ( preg_match_all( '`<img [^>]+>`', $GLOBALS['post']->post_content, $matches ) ) {
+		/**
+		 * Filter: 'wpseo_pre_analysis_post_content' - Allow filtering the content before analysis
+		 *
+		 * @api string $post_content The Post content string
+		 *
+		 * @param object $post - The post object.
+		 */
+		global $post;
+		$content = apply_filters( 'wpseo_pre_analysis_post_content', $post->post_content, $post );
+
+		if ( preg_match_all( '`<img [^>]+>`', $content, $matches ) ) {
 			foreach ( $matches[0] as $img ) {
 				if ( preg_match( '`src=(["\'])(.*?)\1`', $img, $match ) ) {
 					$this->image_output( $match[2] );
@@ -468,7 +602,7 @@ class WPSEO_Twitter {
 	protected function author() {
 		$twitter = ltrim( trim( get_the_author_meta( 'twitter', get_post()->post_author ) ), '@' );
 		/**
-		 * Filter: 'wpseo_twitter_creator_account' - Allow changing the Twitter account as output in the Twitter card by WP SEO
+		 * Filter: 'wpseo_twitter_creator_account' - Allow changing the Twitter account as output in the Twitter card by Yoast SEO
 		 *
 		 * @api string $twitter The twitter account name string
 		 */
@@ -498,4 +632,12 @@ class WPSEO_Twitter {
 		return self::$instance;
 	}
 
+	/**
+	 * Displays the domain tag for the site.
+	 *
+	 * @deprecated 3.0
+	 */
+	protected function site_domain() {
+		_deprecated_function( __METHOD__, 'WPSEO 3.0' );
+	}
 } /* End of class */

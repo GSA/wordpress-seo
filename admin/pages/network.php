@@ -47,7 +47,14 @@ if ( get_blog_count() > 100 ) {
 	$use_dropdown = false;
 }
 else {
-	$sites = wp_get_sites( array( 'deleted' => 0 ) );
+
+	if ( function_exists( 'get_sites' ) ) { // WP 4.6+.
+		$sites = array_map( 'get_object_vars', get_sites( array( 'deleted' => 0 ) ) );
+	}
+	else {
+		$sites = wp_get_sites( array( 'deleted' => 0 ) );
+	}
+
 	if ( is_array( $sites ) && $sites !== array() ) {
 		$dropdown_input = array(
 			'-' => __( 'None', 'wordpress-seo' ),
@@ -90,10 +97,11 @@ wp_nonce_field( 'wpseo-network-settings', '_wpnonce', true, true );
 /* @internal Important: Make sure the options added to the array here are in line with the options set in the WPSEO_Option_MS::$allowed_access_options property */
 $yform->select(
 	'access',
-	__( 'Who should have access to the WordPress SEO settings', 'wordpress-seo' ),
+	/* translators: %1$s expands to Yoast SEO */
+	sprintf( __( 'Who should have access to the %1$s settings', 'wordpress-seo' ), 'Yoast SEO' ),
 	array(
 		'admin'      => __( 'Site Admins (default)', 'wordpress-seo' ),
-		'superadmin' => __( 'Super Admins only', 'wordpress-seo' )
+		'superadmin' => __( 'Super Admins only', 'wordpress-seo' ),
 	),
 	'wpseo_ms'
 );
@@ -114,7 +122,7 @@ else {
 	echo '<p><strong>' . __( 'Take note:', 'wordpress-seo' ) . '</strong> ' . __( 'Privacy sensitive (FB admins and such), theme specific (title rewrite) and a few very site specific settings will not be imported to new blogs.', 'wordpress-seo' ) . '</p>';
 
 
-echo '<input type="submit" name="wpseo_submit" class="button-primary" value="' . __( 'Save MultiSite Settings', 'wordpress-seo' ) . '"/>';
+echo '<input type="submit" name="wpseo_submit" class="button button-primary" value="' . __( 'Save MultiSite Settings', 'wordpress-seo' ) . '"/>';
 echo '</form>';
 
 echo '<h2>' . __( 'Restore site to default settings', 'wordpress-seo' ) . '</h2>';
@@ -137,6 +145,5 @@ else {
 
 echo '<input type="submit" name="wpseo_restore_blog" value="' . __( 'Restore site to defaults', 'wordpress-seo' ) . '" class="button"/>';
 echo '</form>';
-
 
 $yform->admin_footer( false );

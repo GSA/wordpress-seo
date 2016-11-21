@@ -4,9 +4,9 @@
  */
 
 /**
- * class WPSEO_Import
+ * Class WPSEO_Import
  *
- * Class with functionality to import the WP SEO settings
+ * Class with functionality to import the Yoast SEO settings
  */
 class WPSEO_Import {
 
@@ -16,6 +16,9 @@ class WPSEO_Import {
 	 * @var string
 	 */
 	public $msg = '';
+
+	/** @var bool $success If import was a success flag. */
+	public $success = false;
 
 	/**
 	 * @var array
@@ -69,13 +72,22 @@ class WPSEO_Import {
 	 * @return boolean
 	 */
 	private function handle_upload() {
-		$this->file = wp_handle_upload( $_FILES['settings_import_file'] );
+		$overrides  = array( 'mimes' => array( 'zip' => 'application/zip' ) ); // Explicitly allow zip in multisite.
+		$this->file = wp_handle_upload( $_FILES['settings_import_file'], $overrides );
+
 		if ( is_wp_error( $this->file ) ) {
 			$this->msg = __( 'Settings could not be imported:', 'wordpress-seo' ) . ' ' . $this->file->get_error_message();
 
 			return false;
 		}
-		elseif ( ! isset( $this->file['file'] ) ) {
+
+		if ( is_array( $this->file ) && isset( $this->file['error'] ) ) {
+			$this->msg = __( 'Settings could not be imported:', 'wordpress-seo' ) . ' ' . $this->file['error'];
+
+			return false;
+		}
+
+		if ( ! isset( $this->file['file'] ) ) {
 			$this->msg = __( 'Settings could not be imported:', 'wordpress-seo' ) . ' ' . __( 'Upload failed.', 'wordpress-seo' );
 
 			return false;
@@ -136,7 +148,8 @@ class WPSEO_Import {
 			foreach ( $options as $name => $opt_group ) {
 				$this->parse_option_group( $name, $opt_group, $options );
 			}
-			$this->msg = __( 'Settings successfully imported.', 'wordpress-seo' );
+			$this->msg     = __( 'Settings successfully imported.', 'wordpress-seo' );
+			$this->success = true;
 		}
 		else {
 			$this->msg = __( 'Settings could not be imported:', 'wordpress-seo' ) . ' ' . __( 'No settings found in file.', 'wordpress-seo' );
@@ -146,16 +159,16 @@ class WPSEO_Import {
 	/**
 	 * Parse the option group and import it
 	 *
-	 * @param string $name
-	 * @param array  $opt_group
-	 * @param array  $options
+	 * @param string $name      Name string.
+	 * @param array  $opt_group Option group data.
+	 * @param array  $options   Options data.
 	 */
 	private function parse_option_group( $name, $opt_group, $options ) {
 		if ( $name === 'wpseo_taxonomy_meta' ) {
 			$opt_group = json_decode( urldecode( $opt_group['wpseo_taxonomy_meta'] ), true );
 		}
 
-		// Make sure that the imported options are cleaned/converted on import
+		// Make sure that the imported options are cleaned/converted on import.
 		$option_instance = WPSEO_Options::get_option_instance( $name );
 		if ( is_object( $option_instance ) && method_exists( $option_instance, 'import' ) ) {
 			$option_instance->import( $opt_group, $this->old_wpseo_version, $options );
@@ -172,12 +185,12 @@ class WPSEO_Import {
 		if ( file_exists( $this->filename ) && is_writable( $this->filename ) ) {
 			unlink( $this->filename );
 		}
-		if ( file_exists( $this->file['file'] ) && is_writable( $this->file['file'] ) ) {
+		if ( ! empty( $this->file['file'] ) && file_exists( $this->file['file'] ) && is_writable( $this->file['file'] ) ) {
 			unlink( $this->file['file'] );
 		}
 		if ( file_exists( $this->path ) && is_writable( $this->path ) ) {
-			rmdir( $this->path );
+			$wp_file = new WP_Filesystem_Direct( $this->path );
+			$wp_file->rmdir( $this->path, true );
 		}
 	}
-
 }

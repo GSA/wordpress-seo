@@ -4,9 +4,9 @@
  */
 
 /**
- * class WPSEO_Import_WooThemes_SEO
+ * Class WPSEO_Import_WooThemes_SEO
  *
- * Class with functionality to import WP SEO settings from WooThemes SEO
+ * Class with functionality to import Yoast SEO settings from WooThemes SEO
  */
 class WPSEO_Import_WooThemes_SEO extends WPSEO_Import_External {
 
@@ -39,8 +39,8 @@ class WPSEO_Import_WooThemes_SEO extends WPSEO_Import_External {
 	/**
 	 * Import options.
 	 *
-	 * @param string $option
-	 * @param string $post_type
+	 * @param string $option    Option key.
+	 * @param string $post_type Post type name to import for.
 	 */
 	private function import_option( $option, $post_type ) {
 		switch ( get_option( $option ) ) {
@@ -87,11 +87,11 @@ class WPSEO_Import_WooThemes_SEO extends WPSEO_Import_External {
 	/**
 	 * Import custom descriptions and meta keys
 	 *
-	 * @param string $option
-	 * @param string $key
+	 * @param string $option Option key.
+	 * @param string $key    Internal key to import over.
 	 */
 	private function import_custom_values( $option, $key ) {
-		// Import the custom homepage description
+		// Import the custom homepage description.
 		if ( 'c' == get_option( $option ) ) {
 			$this->options[ $key ] = get_option( $option . '_custom' );
 		}
@@ -124,17 +124,17 @@ class WPSEO_Import_WooThemes_SEO extends WPSEO_Import_External {
 		WPSEO_Meta::replace_meta( 'seo_follow', WPSEO_Meta::$meta_prefix . 'meta-robots-nofollow', $this->replace );
 		WPSEO_Meta::replace_meta( 'seo_noindex', WPSEO_Meta::$meta_prefix . 'meta-robots-noindex', $this->replace );
 
-		// If WooSEO is set to use the Woo titles, import those
+		// If WooSEO is set to use the Woo titles, import those.
 		if ( 'true' == get_option( 'seo_woo_wp_title' ) ) {
 			WPSEO_Meta::replace_meta( 'seo_title', WPSEO_Meta::$meta_prefix . 'title', $this->replace );
 		}
 
-		// If WooSEO is set to use the Woo meta descriptions, import those
+		// If WooSEO is set to use the Woo meta descriptions, import those.
 		if ( 'b' == get_option( 'seo_woo_meta_single_desc' ) ) {
 			WPSEO_Meta::replace_meta( 'seo_description', WPSEO_Meta::$meta_prefix . 'metadesc', $this->replace );
 		}
 
-		// If WooSEO is set to use the Woo meta keywords, import those
+		// If WooSEO is set to use the Woo meta keywords, import those.
 		if ( 'b' == get_option( 'seo_woo_meta_single_key' ) ) {
 			WPSEO_Meta::replace_meta( 'seo_keywords', WPSEO_Meta::$meta_prefix . 'metakeywords', $this->replace );
 		}
