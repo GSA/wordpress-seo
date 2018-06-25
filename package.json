@@ -65,6 +65,12 @@
     "react-tap-event-plugin": "^1.0.0",
     "select2": "^4.0.3",
     "yoast-components": "git+https://github.com/Yoast/yoast-components#master",
-    "yoastseo": "git+https://github.com/Yoast/YoastSEO.js.git#master"
-  }
+    "yoastseo": "git+https://github.com/Yoast/YoastSEO.js.git#master",
+    "snyk": "^1.85.0"
+  },
+  "scripts": {
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
+  },
+  "snyk": true
 }
