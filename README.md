@@ -1,3 +1,5 @@
+_This wordpress plugin is not supported. Please use the upstream [wordpress-seo](https://wordpress.org/plugins/wordpress-seo/) plugin._
+
 Yoast SEO
 ======================
 
